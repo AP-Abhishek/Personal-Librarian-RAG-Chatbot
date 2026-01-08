@@ -1,12 +1,22 @@
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
 from typing import List
-from langchain.document_loaders import Document
 
-def chuck_documents(documents: List[Document]):
+def chunk_documents(
+    documents: List[Document],
+    chunk_size: int = 800,
+    chunk_overlap: int = 100
+) -> List[Document]:
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=800,
-        chuck_overlap=100
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap
     )
 
     chunks = splitter.split_documents(documents)
+
+    for i, chunk in enumerate(chunks):
+        chunk.metadata.update({
+            "chunk_id": i
+        })
+
     return chunks
