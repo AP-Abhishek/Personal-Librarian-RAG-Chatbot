@@ -1,6 +1,7 @@
 from pathlib import Path
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_core.retrievers import BaseRetriever
 
 def load_user_vectorstore(user_id: str) -> Chroma:
     embedding_model = HuggingFaceEmbeddings(
@@ -23,7 +24,7 @@ def get_retriever(
     vectorstore: Chroma,
     search_type: str = "mmr",
     k: int = 4
-):
+) -> BaseRetriever:
     return vectorstore.as_retriever(
         search_type=search_type,
         search_kwargs={"k": k}
