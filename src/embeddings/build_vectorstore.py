@@ -17,6 +17,7 @@ def build_user_vectorstore(user_id: str) -> Chroma:
     persist_dir.mkdir(parents=True, exist_ok=True)
 
     vectorstore = Chroma.from_documents(
+        collection_name=f"{user_id}_pdf_collection",
         documents=chunks,
         embedding=embedding_model,
         persist_directory=str(persist_dir)
