@@ -1,11 +1,11 @@
 from pathlib import Path
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
 from src.ingestion.chunk_text import chunk_documents
 from src.ingestion.load_pdfs import load_user_pdfs
 
-def build_user_vectorstore(user_id: str):
+def build_user_vectorstore(user_id: str) -> Chroma:
     docs = load_user_pdfs(user_id)
     chunks = chunk_documents(docs)
 
