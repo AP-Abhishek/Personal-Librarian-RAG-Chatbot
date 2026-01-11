@@ -23,7 +23,7 @@ def load_user_vectorstore(user_id: str) -> Chroma:
 def get_retriever(
     vectorstore: Chroma,
     search_type: str = "mmr",
-    k: int = 4
+    k: int = 2
 ) -> BaseRetriever:
     return vectorstore.as_retriever(
         search_type=search_type,
