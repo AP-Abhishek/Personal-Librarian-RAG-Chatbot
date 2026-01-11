@@ -7,6 +7,21 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(message)s"
 )
 
+def clean_answer(text: str, max_chars: int = 600) -> str:
+    text = " ".join(text.split())
+
+    sentences = text.split(". ")
+    seen = set()
+    cleaned = []
+
+    for s in sentences:
+        if s not in seen:
+            seen.add(s)
+            cleaned.append(s)
+        
+    cleaned_text = ". ".join(cleaned)
+    return cleaned_text[:max_chars].strip()
+
 def run_rag(llm, retriever, query: str):
     docs = retriever.invoke(query)
 
@@ -32,7 +47,8 @@ def run_rag(llm, retriever, query: str):
     logging.info(f"query='{query}' | result=ANSWERED | sources={len(sources)}")
 
     output = llm(prompt)
-    answer = output[0]["generated_text"].strip()
+    raw_answer = output[0]["generated_text"].strip()
+    answer = clean_answer(raw_answer)
 
     if "Not found in the provided documents" in answer:
         logging.info(f"query='{query}' | result=REFUSED | reason=llm_refusal")
