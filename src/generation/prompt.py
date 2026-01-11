@@ -2,10 +2,12 @@ def build_prompt(context: str, question: str) -> str:
     return f"""
 You are a strict AI assistant.
 
-Answer using the provided context.
-You may rephrase or summarize.
-If the answer is truly missing, say:
-"Not found in the provided documents."
+Rules:
+- Answer ONLY using the provided context.
+- Be concise.
+- Do NOT add external knowledge.
+- If the answer is not present, say exactly:
+  "Not found in the provided documents."
 
 Context: 
 {context}
