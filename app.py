@@ -22,7 +22,14 @@ def main():
             break
         
         memory.add_user_query(user_query)
-        response = run_rag(llm, retriever, user_query)
+        
+        final_query = user_query
+        if memory.is_vague(user_query):
+            last_query = memory.get_last_meaningful_query()
+            if last_query:
+                final_query = f"{last_query}. {user_query}"
+        
+        response = run_rag(llm, retriever, final_query)
         print("Librarian:")
         print(f"Answer -> {response['answer']}")
         print(f"Sources -> {response['sources']}\n")

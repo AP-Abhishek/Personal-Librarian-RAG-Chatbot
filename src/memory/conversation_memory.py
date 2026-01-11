@@ -14,3 +14,28 @@ class ConversationMemory:
     
     def clear(self):
         self.history.clear()
+    
+    def get_last_meaningful_query(self) -> str | None:
+        if not self.history:
+            return None
+        
+        for q in reversed(self.history):
+            if not self.is_vague(q):
+                return q
+        
+        return None
+    
+    @staticmethod
+    def is_vague(query: str) -> bool:
+        vague_phrases = {
+            "explain more",
+            "tell me more",
+            "more details",
+            "what about that",
+            "what about this",
+            "and this",
+            "continue",
+            "go on"
+        }
+        q = query.lower()
+        return q in vague_phrases or len(q.split()) <= 2
