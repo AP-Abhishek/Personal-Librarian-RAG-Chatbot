@@ -1,6 +1,7 @@
 from src.retrieval.retriever import load_user_vectorstore, get_retriever
 from src.generation.llm import load_llm
 from src.generation.rag_chain import run_rag
+from src.memory.conversation_memory import ConversationMemory
 
 def main():
     user_id = "user_001"
@@ -8,6 +9,7 @@ def main():
     vectorstore = load_user_vectorstore(user_id)
     retriever = get_retriever(vectorstore)
     llm = load_llm()
+    memory = ConversationMemory()
 
     print("Personal Librarian RAG Chatbot")
     print("-----------------------------")
@@ -18,11 +20,14 @@ def main():
         user_query = input("User: ")
         if user_query.lower() == "exit":
             break
-
+        
+        memory.add_user_query(user_query)
         response = run_rag(llm, retriever, user_query)
         print("Librarian:")
         print(f"Answer -> {response['answer']}")
         print(f"Sources -> {response['sources']}\n")
+    
+    print(memory.get_history())
 
 if __name__ == "__main__":
     main()
