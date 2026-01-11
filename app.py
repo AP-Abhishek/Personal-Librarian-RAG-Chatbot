@@ -1,2 +1,28 @@
+from src.retrieval.retriever import load_user_vectorstore, get_retriever
+from src.generation.llm import load_llm
+from src.generation.rag_chain import run_rag
+
 def main():
-    pass
+    user_id = "user_001"
+
+    vectorstore = load_user_vectorstore(user_id)
+    retriever = get_retriever(vectorstore)
+    llm = load_llm()
+
+    print("Personal Librarian RAG Chatbot")
+    print("-----------------------------")
+    print("Type 'exit' to quit the chatbot")
+    print("-----------------------------")
+    
+    while True:
+        user_query = input("User: ")
+        if user_query.lower() == "exit":
+            break
+
+        response = run_rag(llm, retriever, user_query)
+        print("Librarian:")
+        print(f"Answer -> {response['answer']}")
+        print(f"Sources -> {response['sources']}\n")
+
+if __name__ == "__main__":
+    main()
