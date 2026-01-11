@@ -5,3 +5,4 @@ A chatbot that:
 - Retrieves relevant passages
 - Uses an LLM only to explain those passages
 - Refuses to answer if the info isn’t in your documents
+- Can answer follow-up questions
