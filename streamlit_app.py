@@ -1,5 +1,6 @@
 import streamlit as st
 from pathlib import Path
+import shutil
 
 from src.retrieval.retriever import load_user_vectorstore, get_retriever
 from src.generation.llm import load_llm
@@ -12,6 +13,11 @@ UPLOAD_DIR = Path(f"data/uploads/{USER_ID}/pdfs")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 VECTORSTORE_PATH = Path(f"db/chroma/{USER_ID}")
 
+def clear_directory(path: Path):
+    if path.exists():
+        shutil.rmtree(path)
+
+@st.cache_resource
 def load_retriever():
     vectorstore = load_user_vectorstore(USER_ID)
     return get_retriever(vectorstore)
@@ -39,10 +45,63 @@ if "chat_history" not in st.session_state:
 if "is_building" not in st.session_state:
     st.session_state.is_building = False
 
-llm, memory = load_rag_component()
+if "retriever" not in st.session_state:
+    st.session_state.retriever = None
+    st.session_state.llm = None
+    st.session_state.memory = ConversationMemory(max_size=5)
+
+if st.session_state.retriever is None:
+    try:
+        vectorstore = load_user_vectorstore(USER_ID)
+        st.session_state.retriever = get_retriever(vectorstore)
+    except FileNotFoundError:
+        st.session_state.retriever = None
+
+if st.session_state.llm is None:
+    st.session_state.llm = load_llm()
+
+if st.session_state.get("delete_library"):
+    import gc, time
+
+    st.session_state.retriever = None
+    st.session_state.llm = None
+    st.cache_resources.clear()
+    gc.collect()
+    time.sleep(0.5)
+
+    clear_directory(UPLOAD_DIR)
+    clear_directory(VECTORSTORE_PATH)
+
+    st.session_state.chat_history = []
+    st.session_state.memory.clear()
+    st.session_state.is_building = False
+    st.session_state.delete_library = False
+
+    st.success("Library has been deleted. Please upload new documents to build a new library.")
+
+retriever = st.session_state.retriever
+llm = st.session_state.llm
+memory = st.session_state.memory
 
 st.title("Personal Librarian RAG Chatbot")
 st.caption("Ask questions strictly based on the documents uploaded.")
+
+with st.sidebar:
+    st.header("Session Controls")
+
+    if st.button("Reset Chat"):
+        st.session_state.chat_history = []
+        memory.clear()
+        st.success("Chat has been reset.")
+
+    st.divider()
+
+    confirm_clear = st.checkbox("I understand this will delete my library")
+    
+    if st.button("Clear Library", disabled=not confirm_clear):
+        st.session_state.is_building = True
+        st.session_state["deleting_library"] = True
+        st.rerun()
 
 st.divider()
 
@@ -69,7 +128,12 @@ if uploaded_files:
         st.success("Library built successfully! You can now ask questions.")
 
 library_ready = Path(VECTORSTORE_PATH).exists()
-retriever = load_retriever()
+retriever = None
+if library_ready and not st.session_state.is_building:
+    try:
+        retriever = load_retriever()
+    except Exception:
+        retriever = None
 
 st.divider()
 
