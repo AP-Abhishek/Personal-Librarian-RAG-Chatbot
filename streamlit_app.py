@@ -14,6 +14,9 @@ UPLOAD_DIR = Path(f"data/uploads/{USER_ID}/pdfs")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 VECTORSTORE_PATH = Path(f"db/chroma/{USER_ID}")
 
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
 @st.cache_resource
 def load_rag_component():
     llm = load_llm()
@@ -51,35 +54,50 @@ def load_retriever():
 
 retriever = load_retriever()
 
-user_query = st.text_input("Ask a question from your documents:")
+for msg in st.session_state.chat_history:
+    with st.chat_message(msg["role"]):
+        st.write(msg["content"])
+        if msg["role"] == "assistant" and msg.get("sources"):
+            with st.expander("Sources"):
+                for src in msg["sources"]:
+                    st.write(src)
+
+user_query = st.chat_input("Ask a question from your documents:")
 print(user_query)
 
-if st.button("Ask"):
-    if not user_query.strip():
-        st.warning("Please enter a question.")
-    else:
-        memory.add_user_query(user_query)
+if user_query:
 
-        if memory.is_vague(user_query):
-            last_query = memory.get_last_meaningful_query()
-            if not last_query:
-                st.warning("Could you clarify what topic you're referring to?")
-            else:
-                final_query = f"{last_query}. {user_query}"
+    st.session_state.chat_history.append({
+        "role": "user",
+        "content": user_query
+    })
+
+    memory.add_user_query(user_query)
+
+    if memory.is_vague(user_query):
+        last_query = memory.get_last_meaningful_query()
+        if not last_query:
+            st.session_state.chat_history.append({
+                "role": "assistant",
+                "content": "Could you please clarify what topic you're referring to?",
+                "sources": []
+            })
+            st.rerun()
         else:
-            final_query = user_query
-        
+            final_query = f"{last_query}. {user_query}"
+    else:
+        final_query = user_query
+    
+    with st.spinner("Searching your documents..."):
         print(final_query)
         result = run_rag(llm, retriever, final_query)
 
-        print(result["answer"])
-        st.subheader("Answer")
-        st.write(result["answer"])
-
-        if result["sources"]:
-            print(result["sources"])
-            st.subheader("Sources")
-            for source in result["sources"]:
-                st.write(source)
-
+    st.session_state.chat_history.append({
+        "role": "assistant",
+        "content": result["answer"],
+        "sources": result["sources"]
+    })
+    
+    st.rerun()
+    
 print("Finished")
