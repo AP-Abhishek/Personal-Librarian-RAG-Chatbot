@@ -1,5 +1,4 @@
 import streamlit as st
-import os
 from pathlib import Path
 
 from src.retrieval.retriever import load_user_vectorstore, get_retriever
@@ -8,14 +7,14 @@ from src.generation.rag_chain import run_rag
 from src.memory.conversation_memory import ConversationMemory
 from src.embeddings.build_vectorstore import build_user_vectorstore
 
-st.title("Personal Librarian RAG Chatbot")
 USER_ID = "user_001"
 UPLOAD_DIR = Path(f"data/uploads/{USER_ID}/pdfs")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 VECTORSTORE_PATH = Path(f"db/chroma/{USER_ID}")
 
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+def load_retriever():
+    vectorstore = load_user_vectorstore(USER_ID)
+    return get_retriever(vectorstore)
 
 @st.cache_resource
 def load_rag_component():
@@ -23,7 +22,12 @@ def load_rag_component():
     memory = ConversationMemory(max_size=5)
     return llm, memory
 
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
 llm, memory = load_rag_component()
+
+st.title("Personal Librarian RAG Chatbot")
 
 st.subheader("Upload PDFs")
 uploaded_files = st.file_uploader(
@@ -48,10 +52,6 @@ if not VECTORSTORE_PATH.exists():
     st.warning("Please build a library first.")
     st.stop()
 
-def load_retriever():
-    vectorstore = load_user_vectorstore(USER_ID)
-    return get_retriever(vectorstore)
-
 retriever = load_retriever()
 
 for msg in st.session_state.chat_history:
@@ -63,17 +63,14 @@ for msg in st.session_state.chat_history:
                     st.write(src)
 
 user_query = st.chat_input("Ask a question from your documents:")
-print(user_query)
 
 if user_query:
-
     st.session_state.chat_history.append({
         "role": "user",
         "content": user_query
     })
 
     memory.add_user_query(user_query)
-
     if memory.is_vague(user_query):
         last_query = memory.get_last_meaningful_query()
         if not last_query:
@@ -89,7 +86,6 @@ if user_query:
         final_query = user_query
     
     with st.spinner("Searching your documents..."):
-        print(final_query)
         result = run_rag(llm, retriever, final_query)
 
     st.session_state.chat_history.append({
@@ -97,7 +93,4 @@ if user_query:
         "content": result["answer"],
         "sources": result["sources"]
     })
-    
     st.rerun()
-    
-print("Finished")
