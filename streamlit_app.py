@@ -22,14 +22,32 @@ def load_rag_component():
     memory = ConversationMemory(max_size=5)
     return llm, memory
 
+st.markdown("""
+<style>
+    section[data-testid="stChatInput"] {
+        margin-top: 2rem;
+    }
+    .block-container {
+        padding-top: 2rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
+
+if "is_building" not in st.session_state:
+    st.session_state.is_building = False
 
 llm, memory = load_rag_component()
 
 st.title("Personal Librarian RAG Chatbot")
+st.caption("Ask questions strictly based on the documents uploaded.")
 
-st.subheader("Upload PDFs")
+st.divider()
+
+st.subheader("Your Library")
+st.caption("Upload your PDF files to build your library.")
 uploaded_files = st.file_uploader(
     "Upload one or more PDF files",
     type=["pdf"],
@@ -38,6 +56,7 @@ uploaded_files = st.file_uploader(
 
 if uploaded_files:
     if st.button("Build Library"):
+        st.session_state.is_building = True
         with st.spinner("Processing PDFs and building library..."):
             for uploaded_file in uploaded_files:
                 file_path = UPLOAD_DIR / uploaded_file.name
@@ -46,13 +65,15 @@ if uploaded_files:
 
             build_user_vectorstore(USER_ID)
         
+        st.session_state.is_building = False
         st.success("Library built successfully! You can now ask questions.")
 
-if not VECTORSTORE_PATH.exists():
-    st.warning("Please build a library first.")
-    st.stop()
-
+library_ready = Path(VECTORSTORE_PATH).exists()
 retriever = load_retriever()
+
+st.divider()
+
+st.subheader("Chat with your Library")
 
 for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
@@ -62,7 +83,14 @@ for msg in st.session_state.chat_history:
                 for src in msg["sources"]:
                     st.write(src)
 
-user_query = st.chat_input("Ask a question from your documents:")
+if st.session_state.is_building:
+    st.info("Library is being built. Chat will be enabled once it's ready.")
+    user_query = None
+elif not library_ready:
+    st.info("Upload PDFs and build your library to start chatting.")
+    user_query = None
+else:
+    user_query = st.chat_input("Ask a question from your documents")
 
 if user_query:
     st.session_state.chat_history.append({
