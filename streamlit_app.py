@@ -1,21 +1,55 @@
 import streamlit as st
+import os
+from pathlib import Path
 
 from src.retrieval.retriever import load_user_vectorstore, get_retriever
 from src.generation.llm import load_llm
 from src.generation.rag_chain import run_rag
 from src.memory.conversation_memory import ConversationMemory
+from src.embeddings.build_vectorstore import build_user_vectorstore
 
 st.title("Personal Librarian RAG Chatbot")
 USER_ID = "user_001"
+UPLOAD_DIR = Path(f"data/uploads/{USER_ID}/pdfs")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+VECTORSTORE_PATH = Path(f"db/chroma/{USER_ID}")
 
+@st.cache_resource
 def load_rag_component():
-    vectorstore = load_user_vectorstore(USER_ID)
-    retriever = get_retriever(vectorstore)
     llm = load_llm()
     memory = ConversationMemory(max_size=5)
-    return retriever, llm, memory
+    return llm, memory
 
-retriever, llm, memory = load_rag_component()
+llm, memory = load_rag_component()
+
+st.subheader("Upload PDFs")
+uploaded_files = st.file_uploader(
+    "Upload one or more PDF files",
+    type=["pdf"],
+    accept_multiple_files=True
+)
+
+if uploaded_files:
+    if st.button("Build Library"):
+        with st.spinner("Processing PDFs and building library..."):
+            for uploaded_file in uploaded_files:
+                file_path = UPLOAD_DIR / uploaded_file.name
+                with open(file_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+
+            build_user_vectorstore(USER_ID)
+        
+        st.success("Library built successfully! You can now ask questions.")
+
+if not VECTORSTORE_PATH.exists():
+    st.warning("Please build a library first.")
+    st.stop()
+
+def load_retriever():
+    vectorstore = load_user_vectorstore(USER_ID)
+    return get_retriever(vectorstore)
+
+retriever = load_retriever()
 
 user_query = st.text_input("Ask a question from your documents:")
 print(user_query)
