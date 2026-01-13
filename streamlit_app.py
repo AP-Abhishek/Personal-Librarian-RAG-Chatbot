@@ -28,6 +28,13 @@ def load_rag_component():
     memory = ConversationMemory(max_size=5)
     return llm, memory
 
+st.set_page_config(
+    page_title="Personal Librarian RAG Chatbot",
+    page_icon=":books:",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
+
 st.markdown("""
 <style>
     section[data-testid="stChatInput"] {
