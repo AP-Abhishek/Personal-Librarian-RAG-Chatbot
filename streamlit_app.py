@@ -76,7 +76,7 @@ if st.session_state.delete_library:
     clear_directory(VECTORSTORE_PATH)
 
     st.session_state.delete_library = False
-
+    st.session_state.confirm_clear_library = False
     st.toast("Library has been deleted. Please upload new documents to build a new library.")
 
 llm = st.session_state.llm
@@ -99,7 +99,7 @@ with st.sidebar:
     st.divider()
 
     st.markdown("### Danger Zone")
-    confirm_clear = st.checkbox("I understand this will permanently delete my library")
+    confirm_clear = st.checkbox("I understand this will permanently delete my library", key="confirm_clear_library")
     
     st.button(
         "Clear Library",
