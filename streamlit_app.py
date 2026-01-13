@@ -77,7 +77,7 @@ if st.session_state.delete_library:
 
     st.session_state.delete_library = False
 
-    st.success("Library has been deleted. Please upload new documents to build a new library.")
+    st.toast("Library has been deleted. Please upload new documents to build a new library.")
 
 llm = st.session_state.llm
 memory = st.session_state.memory
@@ -139,7 +139,7 @@ if uploaded_files and st.button("Build Library"):
         build_user_vectorstore(USER_ID)
     
     st.session_state.is_building = False
-    st.success("Library built successfully! You can now ask questions.")
+    st.toast("Library built successfully! You can now ask questions.")
 
 st.divider()
 
@@ -154,13 +154,13 @@ for msg in st.session_state.chat_history:
                     st.write(src)
 
 if st.session_state.delete_library:
-    st.info("Library is being cleared. Please wait.")
+    st.toast("Library is being cleared. Please wait.")
     user_query = None
 elif st.session_state.is_building:
-    st.info("Library is being built. Chat will be enabled once it's ready.")
+    st.toast("Library is being built. Chat will be enabled once it's ready.")
     user_query = None
 elif not library_ready:
-    st.info("Upload PDFs and build your library to start chatting.")
+    st.toast("Upload PDFs and build your library to start chatting.")
     user_query = None
 else:
     user_query = st.chat_input("Ask a question from your documents")
