@@ -9,16 +9,114 @@ from src.memory.conversation_memory import ConversationMemory
 from src.embeddings.build_vectorstore import build_user_vectorstore
 
 st.set_page_config(
-    page_title="Personal Librarian RAG Chatbot",
-    page_icon=":books:",
-    layout="centered",
-    initial_sidebar_state="collapsed"
+    page_title="Personal Librarian",
+    page_icon="📚",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 USER_ID = "user_001"
 UPLOAD_DIR = Path(f"data/uploads/{USER_ID}/pdfs")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 VECTORSTORE_PATH = Path(f"db/chroma/{USER_ID}")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+st.markdown("""
+<style>
+    .stApp {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        color: #f8fafc;
+    }
+
+    section[data-testid="stSidebar"] {
+        background-color: rgba(15, 23, 42, 0.8);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+    }
+
+    .stChatMessage {
+        background-color: rgba(30, 41, 59, 0.5) !important;
+        border-radius: 10px !important;
+        padding: 0.5rem 1rem !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        margin-bottom: 0.25rem !important;
+    }
+
+    /* Only apply zero gap to the chat container area */
+    [data-testid="stVerticalBlock"]:has(> div > .stChatMessage) {
+        gap: 0 !important;
+    }
+
+    /* Ensure sidebar headers have breathing room */
+    section[data-testid="stSidebar"] .stSubheader {
+        margin-top: 1rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    [data-testid="stVerticalBlock"] > div:has(div.stChatMessage) {
+        max-height: 80vh;
+        overflow-y: auto !important;
+        padding-bottom: 0.5rem;
+    }
+
+    footer {visibility: hidden;}
+
+    .stButton > button {
+        border-radius: 8px !important;
+        transition: all 0.1s ease !important;
+    }
+
+    section[data-testid="stSidebar"] .stButton > button {
+        margin-bottom: 0.75rem !important;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-0.5px);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    .stExpander {
+        border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+        border-bottom: none !important;
+        border-left: none !important;
+        border-right: none !important;
+        background: transparent !important;
+        border-radius: 0 !important;
+        margin-top: 0.5rem !important;
+    }
+    
+    .stExpander > div:first-child {
+        padding: 0.5rem 0 !important;
+        margin: 0 !important;
+        min-height: unset !important;
+        font-size: 0.7rem !important;
+        color: #64748b !important;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .stExpander [data-testid="stExpanderDetails"] {
+        padding: 0.25rem 0 0.5rem 0 !important;
+        margin: 0 !important;
+    }
+    
+    .source-list {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .source-item {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        line-height: 1.4;
+    }
+    
+    .source-item:last-child {
+        border-bottom: none;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 def clear_directory(path: Path):
     if path.exists():
@@ -29,141 +127,101 @@ def load_retriever():
     vectorstore = load_user_vectorstore(USER_ID)
     return get_retriever(vectorstore)
 
-@st.cache_resource
-def load_rag_component():
-    llm = load_llm()
-    memory = ConversationMemory(max_size=5)
-    return llm, memory
-
-st.markdown("""
-<style>
-    section[data-testid="stChatInput"] {
-        margin-top: 2rem;
-    }
-    .block-container {
-        padding-top: 2rem;
-    }
-</style>
-""", unsafe_allow_html=True)
-
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 if "memory" not in st.session_state:
     st.session_state.memory = ConversationMemory(max_size=5)
 
-if "is_building" not in st.session_state:
-    st.session_state.is_building = False
-
-if "delete_library" not in st.session_state:
-    st.session_state.delete_library = False
-
 if "llm" not in st.session_state:
     st.session_state.llm = None
 
-if st.session_state.delete_library:
+if "is_building" not in st.session_state:
     st.session_state.is_building = False
 
-    st.session_state.llm = None
-    st.cache_resource.clear()
-    st.session_state.chat_history = []
-    
-    st.session_state.memory.clear()
-    gc.collect()
-    time.sleep(0.5)
-
-    clear_directory(UPLOAD_DIR)
-    clear_directory(VECTORSTORE_PATH)
-
-    st.session_state.delete_library = False
-    st.session_state.confirm_clear_library = False
-    st.toast("Library has been deleted. Please upload new documents to build a new library.")
-
-llm = st.session_state.llm
-memory = st.session_state.memory
+if "last_action" not in st.session_state:
+    st.session_state.last_action = None
 
 with st.sidebar:
-    st.header("Session Controls")
+    st.title("📚 Librarian")
+    st.markdown("---")
+    
+    st.subheader("📁 Document Library")
+    library_ready = VECTORSTORE_PATH.exists()
 
-    st.button(
-        "Reset Chat",
-        use_container_width=True,
-        on_click=lambda: (
-            st.session_state.update(
-                chat_history=[]
-            ),
-            memory.clear(),
-        )
+    uploaded_files = st.file_uploader(
+        "Upload PDF files",
+        type=["pdf"],
+        accept_multiple_files=True,
+        key=f"uploader_{int(library_ready)}"
     )
 
-    st.divider()
+    if uploaded_files and st.button("Build Library", use_container_width=True):
+        st.session_state.is_building = True
+        with st.spinner("Analyzing documents..."):
+            for uploaded_file in uploaded_files:
+                file_path = UPLOAD_DIR / uploaded_file.name
+                with open(file_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+            build_user_vectorstore(USER_ID)
+        st.session_state.is_building = False
+        st.session_state.last_action = "Library built"
+        st.rerun()
 
-    st.markdown("### Danger Zone")
-    confirm_clear = st.checkbox("I understand this will permanently delete my library", key="confirm_clear_library")
+    st.markdown("---")
+    st.subheader("⚙️ Controls")
     
-    st.button(
-        "Clear Library",
-        type="primary",
-        use_container_width=True,
-        disabled=not confirm_clear,
-        on_click=lambda: st.session_state.update(delete_library=True)
-    )
+    if st.button("🧹 Clear Chat", use_container_width=True):
+        st.session_state.chat_history = []
+        st.session_state.memory.clear()
+        st.session_state.last_action = "Chat cleared"
+        st.rerun()
 
-st.title("Personal Librarian RAG Chatbot")
-st.caption("Ask questions strictly based on the documents uploaded.")
+    with st.expander("⚠️ Danger Zone"):
+        confirm_clear = st.checkbox("Confirm permanent deletion")
+        if st.button(
+            "🗑️ Wipe Library",
+            type="primary",
+            disabled=not confirm_clear,
+            use_container_width=True
+        ):
+            st.session_state.chat_history = []
+            st.session_state.memory.clear()
+            st.session_state.llm = None
+            st.cache_resource.clear()
+            gc.collect()
+            time.sleep(0.3)
+            clear_directory(UPLOAD_DIR)
+            clear_directory(VECTORSTORE_PATH)
+            st.session_state.last_action = "Library wiped"
+            st.rerun()
 
-st.divider()
+if st.session_state.last_action:
+    st.toast(st.session_state.last_action)
+    st.session_state.last_action = None
 
-st.subheader("Your Library")
-st.caption("Upload your PDF files to build your library.")
+st.title("Personal Librarian Chat")
+st.caption("Intelligent document retrieval and exploration.")
 
-library_ready = Path(VECTORSTORE_PATH).exists()
-uploader_key = f"uploader_{int(library_ready)}"
+chat_container = st.container()
 
-uploaded_files = st.file_uploader(
-    "Upload one or more PDF files",
-    type=["pdf"],
-    accept_multiple_files=True,
-    key=uploader_key
-)
+with chat_container:
+    for msg in st.session_state.chat_history:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+            if msg["role"] == "assistant" and msg.get("sources"):
+                with st.expander("Sources"):
+                    sources_html = "".join([f'<div class="source-item">{src}</div>' for src in msg["sources"]])
+                    st.markdown(f'<div class="source-list">{sources_html}</div>', unsafe_allow_html=True)
 
-if uploaded_files and st.button("Build Library"):
-    st.session_state.is_building = True
-    
-    with st.spinner("Processing PDFs and building library..."):
-        for uploaded_file in uploaded_files:
-            file_path = UPLOAD_DIR / uploaded_file.name
-            with open(file_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-
-        build_user_vectorstore(USER_ID)
-    
-    st.session_state.is_building = False
-    st.toast("Library built successfully! You can now ask questions.")
-
-st.divider()
-
-st.subheader("Chat with your Library")
-
-for msg in st.session_state.chat_history:
-    with st.chat_message(msg["role"]):
-        st.write(msg["content"])
-        if msg["role"] == "assistant" and msg.get("sources"):
-            with st.expander("Sources"):
-                for src in msg["sources"]:
-                    st.write(src)
-
-if st.session_state.delete_library:
-    st.toast("Library is being cleared. Please wait.")
-    user_query = None
-elif st.session_state.is_building:
-    st.toast("Library is being built. Chat will be enabled once it's ready.")
+if st.session_state.is_building:
+    st.info("The Librarian is processing your documents. Please stand by...")
     user_query = None
 elif not library_ready:
-    st.toast("Upload PDFs and build your library to start chatting.")
+    st.warning("👈 Please upload and build your library in the sidebar to begin.")
     user_query = None
 else:
-    user_query = st.chat_input("Ask a question from your documents")
+    user_query = st.chat_input("Ask anything about your documents...")
 
 if user_query:
     st.session_state.chat_history.append({
@@ -183,17 +241,16 @@ if user_query:
                 "sources": []
             })
             st.rerun()
-        else:
-            final_query = f"{last_query}. {user_query}"
+        final_query = f"{last_query}. {user_query}"
     else:
         final_query = user_query
-    
+
     if st.session_state.llm is None:
         st.session_state.llm = load_llm()
 
     retriever = load_retriever()
-    
-    with st.spinner("Searching your documents..."):
+
+    with st.spinner("Consulting library..."):
         result = run_rag(st.session_state.llm, retriever, final_query)
 
     st.session_state.chat_history.append({
@@ -203,3 +260,4 @@ if user_query:
     })
 
     st.rerun()
+
