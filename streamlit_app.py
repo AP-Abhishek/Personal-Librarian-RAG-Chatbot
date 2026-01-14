@@ -122,8 +122,23 @@ if "llm" not in st.session_state:
 if "is_building" not in st.session_state:
     st.session_state.is_building = False
 
+if "confirm_wipe" not in st.session_state:
+    st.session_state.confirm_wipe = False
+
 if "last_action" not in st.session_state:
     st.session_state.last_action = None
+
+def handle_wipe_library():
+    st.session_state.chat_history = []
+    st.session_state.memory.clear()
+    st.session_state.llm = None
+    st.cache_resource.clear()
+    gc.collect()
+    time.sleep(0.3)
+    clear_directory(UPLOAD_DIR)
+    clear_directory(VECTORSTORE_PATH)
+    st.session_state.last_action = "Library wiped"
+    st.session_state.confirm_wipe = False
 
 with st.sidebar:
     st.title("📚 Librarian")
@@ -161,23 +176,17 @@ with st.sidebar:
         st.rerun()
 
     with st.expander("⚠️ Danger Zone"):
-        confirm_clear = st.checkbox("Confirm permanent deletion")
-        if st.button(
+        confirm_clear = st.checkbox(
+            "Confirm permanent deletion",
+            key="confirm_wipe"
+        )
+        st.button(
             "🗑️ Wipe Library",
             type="primary",
             disabled=not confirm_clear,
-            use_container_width=True
-        ):
-            st.session_state.chat_history = []
-            st.session_state.memory.clear()
-            st.session_state.llm = None
-            st.cache_resource.clear()
-            gc.collect()
-            time.sleep(0.3)
-            clear_directory(UPLOAD_DIR)
-            clear_directory(VECTORSTORE_PATH)
-            st.session_state.last_action = "Library wiped"
-            st.rerun()
+            use_container_width=True,
+            on_click=handle_wipe_library
+        )
 
 if st.session_state.last_action:
     st.toast(st.session_state.last_action)
