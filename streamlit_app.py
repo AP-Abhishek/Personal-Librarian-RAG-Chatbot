@@ -75,45 +75,28 @@ st.markdown("""
     }
     
     .stExpander {
-        border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
-        border-bottom: none !important;
-        border-left: none !important;
-        border-right: none !important;
-        background: transparent !important;
-        border-radius: 0 !important;
+        border: 1px solid rgba(255, 255, 255, 0.03) !important;
+        background: rgba(255, 255, 255, 0.01) !important;
+        border-radius: 8px !important;
+        width: 100% !important;
         margin-top: 0.5rem !important;
     }
     
     .stExpander > div:first-child {
-        padding: 0.5rem 0 !important;
-        margin: 0 !important;
-        min-height: unset !important;
-        font-size: 0.7rem !important;
-        color: #64748b !important;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
+        padding: 0.4rem 0.8rem !important;
+    }
+    
+    .stExpander [data-testid="stExpanderDetails"] {
+        padding: 0.5rem 1rem 0.75rem 1rem !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.03);
     }
 
-    .stExpander [data-testid="stExpanderDetails"] {
-        padding: 0.25rem 0 0.5rem 0 !important;
-        margin: 0 !important;
-    }
-    
-    .source-list {
-        display: flex;
-        flex-direction: column;
-    }
-    
     .source-item {
         font-size: 0.8rem;
         color: #94a3b8;
-        padding: 6px 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-        line-height: 1.4;
-    }
-    
-    .source-item:last-child {
-        border-bottom: none;
+        margin-bottom: 0.5rem;
+        line-height: 1.5;
+        display: block;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -211,8 +194,8 @@ with chat_container:
             st.markdown(msg["content"])
             if msg["role"] == "assistant" and msg.get("sources"):
                 with st.expander("Sources"):
-                    sources_html = "".join([f'<div class="source-item">{src}</div>' for src in msg["sources"]])
-                    st.markdown(f'<div class="source-list">{sources_html}</div>', unsafe_allow_html=True)
+                    for src in msg["sources"]:
+                        st.markdown(f'<div class="source-item">{src}</div>', unsafe_allow_html=True)
 
 if st.session_state.is_building:
     st.info("The Librarian is processing your documents. Please stand by...")
