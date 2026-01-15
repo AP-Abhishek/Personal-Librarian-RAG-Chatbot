@@ -31,4 +31,24 @@ def extract_pdf_page(metadata: dict) -> str:
 
 def extract_snippet(text: str, max_chars: int = 300) -> str:
     text = " ".join(text.split())
-    return text[:max_chars].strip()    
+    return text[:max_chars].strip()
+
+def compute_confidence(sources: list) -> float:
+    if not sources:
+        return 0.0
+    
+    num_chunks = len(sources)
+    unique_pages = len({s["page"] for s in sources if s["page"] != "unknown"})
+    avg_snippet_len = sum(len(s["snippet"]) for s in sources) / num_chunks
+
+    chunk_score = min(num_chunks/4, 1.0)
+    page_score = min(unique_pages/3, 1.0)
+    content_score = 1.0 if avg_snippet_len >= 120 else 0.6
+
+    confidence = (
+        0.5 * chunk_score +
+        0.3 * page_score +
+        0.2 * content_score
+    )
+
+    return round(confidence, 2)

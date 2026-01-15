@@ -1,6 +1,6 @@
 import logging
 from .prompt import build_prompt
-from src.utils import clean_answer, extract_pdf_name, extract_pdf_page, extract_snippet
+from src.utils import clean_answer, extract_pdf_name, extract_pdf_page, extract_snippet, compute_confidence
 
 logging.basicConfig(
     filename="logs/app.log",
@@ -48,6 +48,17 @@ def run_rag(llm, retriever, query: str):
             "snippet": snippet
         })
     
+    confidence = compute_confidence(sources)
+
+    if confidence < 0.35:
+        logging.info(f"query='{query}' | result=REFUSED | reason=low_confidence ({confidence})")
+        return {
+            "answer": None,
+            "sources": [],
+            "confidence": confidence,
+            "refusal_reason": "Retrieval evidence was too weak to answer reliably."
+        }
+    
     context = "\n\n".join(context_blocks)
     prompt = build_prompt(context=context, question=query)
 
@@ -60,5 +71,5 @@ def run_rag(llm, retriever, query: str):
     return {
         "answer": answer,
         "sources": list(set(sources)),
-        "confidence": None
+        "confidence": confidence
     }
