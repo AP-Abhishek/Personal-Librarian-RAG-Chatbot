@@ -29,7 +29,20 @@ def run_rag(llm, retriever, query: str):
         logging.info(f"query='{query}' | result=REFUSED | reason=no_docs")
         return {
             "answer": "Not found in the provided documents.",
-            "sources": []
+            "sources": [],
+            "confidence": 0.0,
+            "refusal_reason": "No relevant documents found."
+        }
+
+    MIN_DOCS_REQUIRED = 1
+
+    if len(docs) < MIN_DOCS_REQUIRED:
+        logging.info(f"query='{query}' | result=REFUSED | reason=insufficient_docs")
+        return {
+            "answer": None,
+            "sources": [],
+            "confidence": 0.0,
+            "refusal_reason": "Insufficient documents evidence."
         }
     
     context_blocks = []
@@ -44,20 +57,14 @@ def run_rag(llm, retriever, query: str):
     context = "\n\n".join(context_blocks)
     prompt = build_prompt(context=context, question=query)
 
-    logging.info(f"query='{query}' | result=ANSWERED | sources={len(sources)}")
-
     output = llm(prompt)
     raw_answer = output[0]["generated_text"].strip()
     answer = clean_answer(raw_answer)
 
-    if "Not found in the provided documents" in answer:
-        logging.info(f"query='{query}' | result=REFUSED | reason=llm_refusal")
-        return {
-            "answer": "Not found in the provided documents.",
-            "sources": []
-        }
+    logging.info(f"query='{query}' | result=ANSWERED | sources={len(sources)}")
 
     return {
         "answer": answer,
-        "sources": list(set(sources))
+        "sources": list(set(sources)),
+        "confidence": None
     }
