@@ -1,26 +1,12 @@
-import logging, datetime
+import logging
 from .prompt import build_prompt
+from src.utils import clean_answer, extract_pdf_name, extract_pdf_page, extract_snippet
 
 logging.basicConfig(
     filename="logs/app.log",
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s"
 )
-
-def clean_answer(text: str, max_chars: int = 600) -> str:
-    text = " ".join(text.split())
-
-    sentences = text.split(". ")
-    seen = set()
-    cleaned = []
-
-    for s in sentences:
-        if s not in seen:
-            seen.add(s)
-            cleaned.append(s)
-        
-    cleaned_text = ". ".join(cleaned)
-    return cleaned_text[:max_chars].strip()
 
 def run_rag(llm, retriever, query: str):
     docs = retriever.invoke(query)
@@ -49,10 +35,18 @@ def run_rag(llm, retriever, query: str):
     sources = []
 
     for i, doc in enumerate(docs):
-        source = doc.metadata.get("source", "unknown")
-        chunk_id = doc.metadata.get("chunk_id", "unknown")
-        context_blocks.append(f"[Source {i+1}: {source } | Chunk: {chunk_id}]\n{doc.page_content}")
-        sources.append(f"{source} | chunk {chunk_id}")
+        metadata = doc.metadata or {}
+
+        pdf_name = extract_pdf_name(metadata.get("source"))
+        pdf_page = extract_pdf_page(metadata)
+        snippet = extract_snippet(doc.page_content)
+
+        context_blocks.append(f"[Source {i+1}: {pdf_name} | Page: {pdf_page}]\n{doc.page_content}")
+        sources.append({
+            "pdf": pdf_name,
+            "page": pdf_page,
+            "snippet": snippet
+        })
     
     context = "\n\n".join(context_blocks)
     prompt = build_prompt(context=context, question=query)
