@@ -52,3 +52,29 @@ def compute_confidence(sources: list) -> float:
     )
 
     return round(confidence, 2)
+
+def format_export_text(data: dict) -> str:
+    lines = [
+        f"Question:\n{data["question"]}\n",
+        f"Answer:\n{data["answer"]}\n",
+        f"Confidence:\n{data["confidence"]}\n",
+        "Sources:"
+    ]
+
+    for src in data["sources"]:
+        lines.append(f" - {src['pdf']} | Page {src['page']}\n {src['snippet']}")
+    
+    return "\n".join(lines)
+
+def format_export_markdown(data: dict) -> str:
+    md = [
+        f"## Question\n\n{data['question']}\n",
+        f"## Answer\n\n{data['answer']}\n",
+        f"**Confidence:** `{data['confidence']}`\n",
+        "## Sources"
+    ]
+
+    for src in data["sources"]:
+        md.append(f"- **{src['pdf']}**, page {src['page']}\n\n  > {src['snippet']}")
+    
+    return "\n".join(md)

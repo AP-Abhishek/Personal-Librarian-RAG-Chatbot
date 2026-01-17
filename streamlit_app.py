@@ -1,3 +1,5 @@
+from src.utils import format_export_markdown
+from src.utils import format_export_text
 import streamlit as st
 from pathlib import Path
 import shutil, gc, time
@@ -15,11 +17,32 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-USER_ID = "user_001"
+DEFAULT_USER = "user_001"
+
+with st.sidebar:
+    st.title("📚 Librarian")
+    st.markdown("---")
+    
+    st.subheader("👤 Active User")
+
+    if "active_user" not in st.session_state:
+        st.session_state.active_user = DEFAULT_USER
+    
+    new_user = st.text_input(
+        "User ID",
+        value=st.session_state.active_user
+    )
+
+    if st.button("Switch User", use_container_width=True):
+        st.session_state.active_user = new_user.strip()
+        st.session_state.clear()
+        st.rerun()
+
+USER_ID = st.session_state.active_user
 UPLOAD_DIR = Path(f"data/uploads/{USER_ID}/pdfs")
 VECTORSTORE_PATH = Path(f"db/chroma/{USER_ID}")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 MEMORY_PATH = Path(f"data/memory/{USER_ID}/conversation.json")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 st.markdown("""
 <style>
@@ -107,8 +130,8 @@ def clear_directory(path: Path):
         shutil.rmtree(path, ignore_errors=True)
 
 @st.cache_resource
-def load_retriever():
-    vectorstore = load_user_vectorstore(USER_ID)
+def load_retriever(user_id: str):
+    vectorstore = load_user_vectorstore(user_id)
     return get_retriever(vectorstore)
 
 if "chat_history" not in st.session_state:
@@ -143,9 +166,6 @@ def handle_wipe_library():
     st.session_state.confirm_wipe = False
 
 with st.sidebar:
-    st.title("📚 Librarian")
-    st.markdown("---")
-    
     st.subheader("📁 Document Library")
     library_ready = VECTORSTORE_PATH.exists()
 
@@ -167,6 +187,39 @@ with st.sidebar:
         st.session_state.is_building = False
         st.session_state.last_action = "Library built"
         st.rerun()
+
+    st.markdown("---")
+    st.subheader("📤 Export")
+
+    last_result = st.session_state.get("last_result")
+
+    export_disabled = (
+        not last_result 
+        or not last_result.get("answer")
+        or not last_result.get("sources")
+    )
+
+    if last_result:
+        st.download_button(
+            "Export as Text file",
+            data=format_export_text(last_result),
+            file_name="librarian_answer.txt",
+            mime="text/plain",
+            disabled=export_disabled,
+            use_container_width=True
+        )
+        
+        st.download_button(
+            "Export as Markdown",
+            data=format_export_markdown(last_result),
+            file_name="librarian_answer.md",
+            mime="text/markdown",
+            disabled=export_disabled,
+            use_container_width=True
+        )
+    else:
+        st.caption("Ask a question to enable export.")
+        
 
     st.markdown("---")
     st.subheader("⚙️ Controls")
@@ -242,10 +295,17 @@ if user_query:
     if st.session_state.llm is None:
         st.session_state.llm = load_llm()
 
-    retriever = load_retriever()
+    retriever = load_retriever(USER_ID)
 
     with st.spinner("Consulting library..."):
         result = run_rag(st.session_state.llm, retriever, final_query)
+    
+    st.session_state.last_result = {
+        "question": final_query,
+        "answer": result["answer"],
+        "sources": result["sources"],
+        "confidence": result["confidence"]
+    }
 
     st.session_state.chat_history.append({
         "role": "assistant",
