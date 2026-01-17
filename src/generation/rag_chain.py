@@ -70,6 +70,6 @@ def run_rag(llm, retriever, query: str):
 
     return {
         "answer": answer,
-        "sources": list(set(sources)),
+        "sources": sources,
         "confidence": confidence
     }
