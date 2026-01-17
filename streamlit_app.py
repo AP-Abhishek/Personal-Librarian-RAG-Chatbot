@@ -19,6 +19,7 @@ USER_ID = "user_001"
 UPLOAD_DIR = Path(f"data/uploads/{USER_ID}/pdfs")
 VECTORSTORE_PATH = Path(f"db/chroma/{USER_ID}")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+MEMORY_PATH = Path(f"data/memory/{USER_ID}/conversation.json")
 
 st.markdown("""
 <style>
@@ -114,7 +115,7 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 if "memory" not in st.session_state:
-    st.session_state.memory = ConversationMemory(max_size=5)
+    st.session_state.memory = ConversationMemory(max_size=5, persist_path=MEMORY_PATH)
 
 if "llm" not in st.session_state:
     st.session_state.llm = None
@@ -137,6 +138,7 @@ def handle_wipe_library():
     time.sleep(0.3)
     clear_directory(UPLOAD_DIR)
     clear_directory(VECTORSTORE_PATH)
+    clear_directory(MEMORY_PATH.parent)
     st.session_state.last_action = "Library wiped"
     st.session_state.confirm_wipe = False
 
