@@ -1,5 +1,4 @@
-from src.utils import format_export_markdown
-from src.utils import format_export_text
+from src.utils import format_export_markdown, format_export_text
 import streamlit as st
 from pathlib import Path
 import shutil, gc, time
@@ -43,6 +42,7 @@ UPLOAD_DIR = Path(f"data/uploads/{USER_ID}/pdfs")
 VECTORSTORE_PATH = Path(f"db/chroma/{USER_ID}")
 MEMORY_PATH = Path(f"data/memory/{USER_ID}/conversation.json")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+MEMORY_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 st.markdown("""
 <style>
@@ -65,12 +65,10 @@ st.markdown("""
         margin-bottom: 0.25rem !important;
     }
 
-    /* Only apply zero gap to the chat container area */
     [data-testid="stVerticalBlock"]:has(> div > .stChatMessage) {
         gap: 0 !important;
     }
 
-    /* Ensure sidebar headers have breathing room */
     section[data-testid="stSidebar"] .stSubheader {
         margin-top: 1rem !important;
         margin-bottom: 0.5rem !important;
@@ -122,6 +120,14 @@ st.markdown("""
         line-height: 1.5;
         display: block;
     }
+
+    .assistant-answer {
+        background: rgba(15, 23, 42, 0.6);
+        border-left: 4px solid #38bdf8;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        margin-top: 0.25rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -152,10 +158,14 @@ if "confirm_wipe" not in st.session_state:
 if "last_action" not in st.session_state:
     st.session_state.last_action = None
 
+if "last_result" not in st.session_state:
+    st.session_state.last_result = None
+
 def handle_wipe_library():
     st.session_state.chat_history = []
     st.session_state.memory.clear()
     st.session_state.llm = None
+    st.session_state.last_result = None
     st.cache_resource.clear()
     gc.collect()
     time.sleep(0.3)
@@ -181,7 +191,7 @@ with st.sidebar:
         with st.spinner("Analyzing documents..."):
             for uploaded_file in uploaded_files:
                 file_path = UPLOAD_DIR / uploaded_file.name
-                with open(file_path, "wb") as f:
+                with open(file_path, "wb") as f:    
                     f.write(uploaded_file.getbuffer())
             build_user_vectorstore(USER_ID)
         st.session_state.is_building = False
