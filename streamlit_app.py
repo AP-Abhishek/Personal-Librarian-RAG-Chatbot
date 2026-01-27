@@ -21,12 +21,11 @@ DEFAULT_USER = "user_001"
 with st.sidebar:
     st.title("📚 Librarian")
     st.markdown("---")
-    
     st.subheader("👤 Active User")
 
     if "active_user" not in st.session_state:
         st.session_state.active_user = DEFAULT_USER
-    
+
     new_user = st.text_input(
         "User ID",
         value=st.session_state.active_user
@@ -90,12 +89,12 @@ st.markdown("""
     section[data-testid="stSidebar"] .stButton > button {
         margin-bottom: 0.75rem !important;
     }
-    
+
     .stButton > button:hover {
         transform: translateY(-0.5px);
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
     }
-    
+
     .stExpander {
         border: 1px solid rgba(255, 255, 255, 0.03) !important;
         background: rgba(255, 255, 255, 0.01) !important;
@@ -103,11 +102,11 @@ st.markdown("""
         width: 100% !important;
         margin-top: 0.5rem !important;
     }
-    
+
     .stExpander > div:first-child {
         padding: 0.4rem 0.8rem !important;
     }
-    
+
     .stExpander [data-testid="stExpanderDetails"] {
         padding: 0.5rem 1rem 0.75rem 1rem !important;
         border-top: 1px solid rgba(255, 255, 255, 0.03);
@@ -131,9 +130,17 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-def clear_directory(path: Path):
-    if path.exists():
-        shutil.rmtree(path, ignore_errors=True)
+def wipe_vectorstore(user_id: str):
+    try:
+        vectorstore = load_user_vectorstore(user_id)
+        vectorstore.delete(where={})
+        vectorstore.persist()
+        del vectorstore
+        gc.collect()
+        time.sleep(0.1)
+        return True
+    except Exception:
+        return False
 
 @st.cache_resource
 def load_retriever(user_id: str):
@@ -161,19 +168,27 @@ if "last_action" not in st.session_state:
 if "last_result" not in st.session_state:
     st.session_state.last_result = None
 
-def handle_wipe_library():
+if "pending_wipe" not in st.session_state:
+    st.session_state.pending_wipe = False
+
+if st.session_state.pending_wipe:
     st.session_state.chat_history = []
     st.session_state.memory.clear()
     st.session_state.llm = None
     st.session_state.last_result = None
+
     st.cache_resource.clear()
     gc.collect()
-    time.sleep(0.3)
-    clear_directory(UPLOAD_DIR)
-    clear_directory(VECTORSTORE_PATH)
-    clear_directory(MEMORY_PATH.parent)
-    st.session_state.last_action = "Library wiped"
-    st.session_state.confirm_wipe = False
+    time.sleep(0.1)
+
+    wiped = wipe_vectorstore(USER_ID)
+
+    shutil.rmtree(UPLOAD_DIR, ignore_errors=True)
+    shutil.rmtree(MEMORY_PATH.parent, ignore_errors=True)
+
+    st.session_state.pending_wipe = False
+    st.session_state.last_action = "Library wiped" if wiped else "No library found"
+    st.rerun()
 
 with st.sidebar:
     st.subheader("📁 Document Library")
@@ -191,7 +206,7 @@ with st.sidebar:
         with st.spinner("Analyzing documents..."):
             for uploaded_file in uploaded_files:
                 file_path = UPLOAD_DIR / uploaded_file.name
-                with open(file_path, "wb") as f:    
+                with open(file_path, "wb") as f:
                     f.write(uploaded_file.getbuffer())
             build_user_vectorstore(USER_ID)
         st.session_state.is_building = False
@@ -204,7 +219,7 @@ with st.sidebar:
     last_result = st.session_state.get("last_result")
 
     export_disabled = (
-        not last_result 
+        not last_result
         or not last_result.get("answer")
         or not last_result.get("sources")
     )
@@ -218,7 +233,7 @@ with st.sidebar:
             disabled=export_disabled,
             use_container_width=True
         )
-        
+
         st.download_button(
             "Export as Markdown",
             data=format_export_markdown(last_result),
@@ -229,11 +244,10 @@ with st.sidebar:
         )
     else:
         st.caption("Ask a question to enable export.")
-        
 
     st.markdown("---")
     st.subheader("⚙️ Controls")
-    
+
     if st.button("🧹 Clear Chat", use_container_width=True):
         st.session_state.chat_history = []
         st.session_state.memory.clear()
@@ -245,13 +259,13 @@ with st.sidebar:
             "Confirm permanent deletion",
             key="confirm_wipe"
         )
-        st.button(
+        if st.button(
             "🗑️ Wipe Library",
             type="primary",
             disabled=not confirm_clear,
-            use_container_width=True,
-            on_click=handle_wipe_library
-        )
+            use_container_width=True
+        ):
+            st.session_state.pending_wipe = True
 
 if st.session_state.last_action:
     st.toast(st.session_state.last_action)
@@ -309,7 +323,7 @@ if user_query:
 
     with st.spinner("Consulting library..."):
         result = run_rag(st.session_state.llm, retriever, final_query)
-    
+
     st.session_state.last_result = {
         "question": final_query,
         "answer": result["answer"],
@@ -324,4 +338,3 @@ if user_query:
     })
 
     st.rerun()
-
