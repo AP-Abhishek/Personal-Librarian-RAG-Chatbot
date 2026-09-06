@@ -1,8 +1,10 @@
-from src.utils import format_export_markdown, format_export_text
+import uuid
+
 import streamlit as st
 from pathlib import Path
 import shutil, gc, time
 
+from src.utils import format_export_markdown, format_export_text
 from src.retrieval.retriever import load_user_vectorstore, get_retriever
 from src.generation.llm import load_llm
 from src.generation.rag_chain import run_rag
@@ -16,27 +18,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-DEFAULT_USER = "user_001"
+if "session_id" not in st.session_state:
+    st.session_state.session_id = f"session_{uuid.uuid4().hex[:8]}"
 
-with st.sidebar:
-    st.title("📚 Librarian")
-    st.markdown("---")
-    st.subheader("👤 Active User")
-
-    if "active_user" not in st.session_state:
-        st.session_state.active_user = DEFAULT_USER
-
-    new_user = st.text_input(
-        "User ID",
-        value=st.session_state.active_user
-    )
-
-    if st.button("Switch User", use_container_width=True):
-        st.session_state.active_user = new_user.strip()
-        st.session_state.clear()
-        st.rerun()
-
-USER_ID = st.session_state.active_user
+USER_ID = st.session_state.session_id
 UPLOAD_DIR = Path(f"data/uploads/{USER_ID}/pdfs")
 VECTORSTORE_PATH = Path(f"db/chroma/{USER_ID}")
 MEMORY_PATH = Path(f"data/memory/{USER_ID}/conversation.json")
@@ -132,12 +117,12 @@ st.markdown("""
 
 def wipe_vectorstore(user_id: str):
     try:
-        vectorstore = load_user_vectorstore(user_id)
-        vectorstore.delete(where={})
-        vectorstore.persist()
-        del vectorstore
+        st.cache_resource.clear()
         gc.collect()
         time.sleep(0.1)
+        vs_dir = Path(f"db/chroma/{user_id}")
+        if vs_dir.exists():
+            shutil.rmtree(vs_dir, ignore_errors=True)
         return True
     except Exception:
         return False
@@ -182,15 +167,16 @@ if st.session_state.pending_wipe:
     time.sleep(0.1)
 
     wiped = wipe_vectorstore(USER_ID)
-
     shutil.rmtree(UPLOAD_DIR, ignore_errors=True)
     shutil.rmtree(MEMORY_PATH.parent, ignore_errors=True)
 
     st.session_state.pending_wipe = False
-    st.session_state.last_action = "Library wiped" if wiped else "No library found"
+    st.session_state.last_action = "Session library wiped" if wiped else "No library found"
     st.rerun()
 
 with st.sidebar:
+    st.title("📚 Librarian")
+    st.markdown("---")
     st.subheader("📁 Document Library")
     library_ready = VECTORSTORE_PATH.exists()
 
