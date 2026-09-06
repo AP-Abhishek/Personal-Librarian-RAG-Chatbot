@@ -3,7 +3,6 @@ from .prompt import build_prompt
 from src.utils import clean_answer, extract_pdf_name, extract_pdf_page, extract_snippet, compute_confidence
 
 logging.basicConfig(
-    filename="logs/app.log",
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s"
 )
