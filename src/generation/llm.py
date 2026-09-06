@@ -4,5 +4,7 @@ def load_llm():
     return pipeline(
         task="text2text-generation",
         model="google/flan-t5-large",
-        max_new_tokens=256
+        max_new_tokens=256,
+        truncation=True,
+        model_kwargs={"max_length": 512}
     )
