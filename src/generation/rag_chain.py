@@ -41,7 +41,7 @@ def run_rag(llm, retriever, query: str):
         pdf_page = extract_pdf_page(metadata)
         snippet = extract_snippet(doc.page_content)
 
-        context_blocks.append(f"[Source {i+1}: {pdf_name} | Page: {pdf_page}]\n{doc.page_content}")
+        context_blocks.append(doc.page_content.strip())
         sources.append({
             "pdf": pdf_name,
             "page": pdf_page,
