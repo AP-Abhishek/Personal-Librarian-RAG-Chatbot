@@ -25,7 +25,7 @@ def run_rag(llm, retriever, query: str):
     if len(docs) < MIN_DOCS_REQUIRED:
         logging.info(f"query='{query}' | result=REFUSED | reason=insufficient_docs")
         return {
-            "answer": None,
+            "answer": "Not found in the provided documents.",
             "sources": [],
             "confidence": 0.0,
             "refusal_reason": "Insufficient documents evidence."
@@ -53,8 +53,8 @@ def run_rag(llm, retriever, query: str):
     if confidence < 0.35:
         logging.info(f"query='{query}' | result=REFUSED | reason=low_confidence ({confidence})")
         return {
-            "answer": None,
-            "sources": [],
+            "answer": "Retrieval evidence was too weak to answer reliably.",
+            "sources": sources,
             "confidence": confidence,
             "refusal_reason": "Retrieval evidence was too weak to answer reliably."
         }
