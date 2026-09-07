@@ -10,8 +10,7 @@ def build_user_vectorstore(user_id: str) -> Chroma:
     chunks = chunk_documents(docs)
 
     embedding_model = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2",
-        model_kwargs={"local_files_only": True}
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
 
     persist_dir = Path(f"db/chroma/{user_id}")
