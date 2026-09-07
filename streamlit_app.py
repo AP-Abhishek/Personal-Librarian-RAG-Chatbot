@@ -281,26 +281,31 @@ else:
     user_query = st.chat_input("Ask anything about your documents...")
 
 if user_query:
-    st.session_state.chat_history.append({
-        "role": "user",
-        "content": user_query
-    })
-
     memory = st.session_state.memory
-    memory.add_user_query(user_query)
 
     if memory.is_vague(user_query):
         last_query = memory.get_last_meaningful_query()
         if not last_query:
             st.session_state.chat_history.append({
+                "role": "user",
+                "content": user_query
+            })
+            st.session_state.chat_history.append({
                 "role": "assistant",
-                "content": "Could you please clarify what topic you're referring to?",
+                "content": "Could you please clarify what specific topic or document section you're referring to?",
                 "sources": []
             })
+            memory.add_user_query(user_query)
             st.rerun()
         final_query = f"{last_query}. {user_query}"
     else:
         final_query = user_query
+
+    st.session_state.chat_history.append({
+        "role": "user",
+        "content": user_query
+    })
+    memory.add_user_query(user_query)
 
     if st.session_state.llm is None:
         st.session_state.llm = load_llm()
