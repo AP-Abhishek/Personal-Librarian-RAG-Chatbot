@@ -189,15 +189,20 @@ with st.sidebar:
 
     if uploaded_files and st.button("Build Library", use_container_width=True):
         st.session_state.is_building = True
-        with st.spinner("Analyzing documents..."):
-            for uploaded_file in uploaded_files:
-                file_path = UPLOAD_DIR / uploaded_file.name
-                with open(file_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-            build_user_vectorstore(USER_ID)
-        st.session_state.is_building = False
-        st.session_state.last_action = "Library built"
-        st.rerun()
+        try:
+            with st.spinner("Analyzing documents..."):
+                for uploaded_file in uploaded_files:
+                    file_path = UPLOAD_DIR / uploaded_file.name
+                    with open(file_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                build_user_vectorstore(USER_ID)
+            st.session_state.last_action = "Library built successfully"
+        except Exception as e:
+            st.error(f"Error processing documents: {e}")
+            st.session_state.last_action = "Failed to build library"
+        finally:
+            st.session_state.is_building = False
+            st.rerun()
 
     st.markdown("---")
     st.subheader("📤 Export")
