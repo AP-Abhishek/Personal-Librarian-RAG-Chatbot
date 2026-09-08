@@ -18,7 +18,7 @@ def clean_answer(text: str, max_chars: int = 600) -> str:
 def extract_pdf_name(source: str) -> str:
     if not source:
         return "unknown"
-    return os.path.basename(source)
+    return os.path.basename(str(source))
 
 def extract_pdf_page(metadata: dict) -> str:
     for key in ("page", "page_number", "page_index"):

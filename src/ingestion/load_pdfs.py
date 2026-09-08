@@ -16,7 +16,8 @@ def load_user_pdfs(user_id: str) -> List[Document]:
 
         for doc in docs:
             doc.metadata.update({
-                "source": pdf_file.name,
+                "source": str(pdf_file),
+                "file_name": pdf_file.name,
                 "user_id": user_id
             })
             documents.append(doc)
