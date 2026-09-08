@@ -66,7 +66,14 @@ class ConversationMemory:
             "what about this",
             "and this",
             "continue",
-            "go on"
+            "go on",
+            "elaborate",
+            "more",
+            "why",
+            "how",
+            "what else",
+            "and then"
         }
-        q = query.lower()
-        return q in vague_phrases or len(q.split()) <= 2
+        
+        q = query.strip().lower()
+        return q in vague_phrases or len(q) < 3
