@@ -1,19 +1,15 @@
 import os
 
-def clean_answer(text: str, max_chars: int = 600) -> str:
+def clean_answer(text: str, max_chars: int = 800) -> str:
     text = " ".join(text.split())
-
-    sentences = text.split(". ")
-    seen = set()
-    cleaned = []
-
-    for s in sentences:
-        if s not in seen:
-            seen.add(s)
-            cleaned.append(s)
-        
-    cleaned_text = ". ".join(cleaned)
-    return cleaned_text[:max_chars].strip()
+    if len(text) <= max_chars:
+        return text.strip()
+    
+    truncated = text[:max_chars]
+    last_space = truncated.rfind(" ")
+    if last_space > 0:
+        return truncated[:last_space].strip() + "..."
+    return truncated.strip() + "..."
 
 def extract_pdf_name(source: str) -> str:
     if not source:
