@@ -1,17 +1,8 @@
 def build_prompt(context: str, question: str) -> str:
-    return f"""
-You are a strict AI assistant.
-
-Rules:
-- Answer ONLY using the provided context.
-- Be concise.
-- Do NOT add external knowledge.
-- If the answer is not present, say exactly:
-  "Not found in the provided documents."
-
-Context: 
+    return f"""Context:
 {context}
 
-Question: 
-{question}
-""".strip()
+Question: {question}
+
+Based on the context above, answer the question concisely. If the answer is not in the context, reply "Not found in the provided documents."
+Answer:""".strip()

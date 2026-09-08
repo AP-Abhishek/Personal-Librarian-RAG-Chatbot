@@ -59,6 +59,9 @@ def run_rag(llm, retriever, query: str):
         }
     
     context = "\n\n".join(context_blocks)
+    if len(context) > 1800:
+        context = context[:1800] + "..."
+
     prompt = build_prompt(context=context, question=query)
 
     output = llm(prompt)

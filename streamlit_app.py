@@ -272,9 +272,15 @@ with chat_container:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
             if msg["role"] == "assistant" and msg.get("sources"):
-                with st.expander("Sources"):
+                with st.expander("Sources & References"):
                     for src in msg["sources"]:
-                        st.markdown(f'<div class="source-item">{src}</div>', unsafe_allow_html=True)
+                        if isinstance(src, dict):
+                            pdf = src.get("pdf", "Document")
+                            page = src.get("page", "1")
+                            snippet = src.get("snippet", "")
+                            st.markdown(f'<div class="source-item">📄 <b>{pdf}</b> (Page {page})<br/><i>"{snippet}"</i></div>', unsafe_allow_html=True)
+                        else:
+                            st.markdown(f'<div class="source-item">{src}</div>', unsafe_allow_html=True)
 
 if st.session_state.is_building:
     st.info("The Librarian is processing your documents. Please stand by...")
@@ -317,14 +323,22 @@ if user_query:
 
     retriever = load_retriever(USER_ID)
 
-    with st.spinner("Consulting library..."):
-        result = run_rag(st.session_state.llm, retriever, final_query)
+    try:
+        with st.spinner("Consulting library..."):
+            result = run_rag(st.session_state.llm, retriever, final_query)
+    except Exception as e:
+        logging.error(f"Error executing RAG chain: {e}", exc_info=True)
+        result = {
+            "answer": f"An error occurred while consulting the library: {str(e)}",
+            "sources": [],
+            "confidence": 0.0
+        }
 
     st.session_state.last_result = {
         "question": final_query,
         "answer": result["answer"],
         "sources": result["sources"],
-        "confidence": result["confidence"]
+        "confidence": result.get("confidence", 0.0)
     }
 
     st.session_state.chat_history.append({
