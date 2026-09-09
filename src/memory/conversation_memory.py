@@ -59,21 +59,18 @@ class ConversationMemory:
     @staticmethod
     def is_vague(query: str) -> bool:
         vague_phrases = {
-            "explain more",
-            "tell me more",
-            "more details",
-            "what about that",
-            "what about this",
-            "and this",
-            "continue",
-            "go on",
-            "elaborate",
-            "more",
-            "why",
-            "how",
-            "what else",
-            "and then"
+            "explain more", "tell me more", "more details", "what about that",
+            "what about this", "and this", "continue", "go on", "elaborate",
+            "more", "why", "how", "what else", "and then", "anything else",
+            "other projects", "any other", "another project", "apart from this",
+            "besides this", "is there any other", "are there any other"
         }
         
         q = query.strip().lower()
-        return q in vague_phrases or len(q) < 3
+        if q in vague_phrases or len(q) < 3:
+            return True
+            
+        return any(phrase in q for phrase in [
+            "any other", "other project", "another project", "apart from this",
+            "besides this", "anything else", "what else", "is there more"
+        ])

@@ -7,7 +7,7 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(message)s"
 )
 
-def run_rag(llm, retriever, query: str):
+def run_rag(llm, retriever, query: str, chat_history: str = ""):
     docs = retriever.invoke(query)
 
     if not docs:
@@ -65,7 +65,7 @@ def run_rag(llm, retriever, query: str):
     if len(context) > 1500:
         context = context[:1500] + "..."
 
-    prompt = build_prompt(context=context, question=query)
+    prompt = build_prompt(context=context, question=query, chat_history=chat_history)
 
     output = llm(prompt)
     raw_answer = output[0]["generated_text"].strip()

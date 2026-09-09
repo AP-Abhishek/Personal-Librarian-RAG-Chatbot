@@ -323,9 +323,18 @@ if user_query:
 
     retriever = load_retriever(USER_ID)
 
+    recent_history = ""
+    if len(st.session_state.chat_history) >= 2:
+        recent_msgs = st.session_state.chat_history[-2:]
+        history_lines = []
+        for msg in recent_msgs:
+            role = "User" if msg["role"] == "user" else "Assistant"
+            history_lines.append(f"{role}: {msg['content']}")
+        recent_history = "\n".join(history_lines)
+
     try:
         with st.spinner("Consulting library..."):
-            result = run_rag(st.session_state.llm, retriever, final_query)
+            result = run_rag(st.session_state.llm, retriever, final_query, chat_history=recent_history)
     except Exception as e:
         logging.error(f"Error executing RAG chain: {e}", exc_info=True)
         result = {
