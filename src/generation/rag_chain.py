@@ -33,14 +33,17 @@ def run_rag(llm, retriever, query: str):
     context_blocks = []
     sources = []
 
-    for i, doc in enumerate(docs):
+    for doc in docs:
         metadata = doc.metadata or {}
 
         pdf_name = extract_pdf_name(metadata.get("source"))
         pdf_page = extract_pdf_page(metadata)
         snippet = extract_snippet(doc.page_content)
 
-        context_blocks.append(doc.page_content.strip())
+        text = doc.page_content.strip()
+        if text not in context_blocks:
+            context_blocks.append(text)
+
         sources.append({
             "pdf": pdf_name,
             "page": pdf_page,
@@ -59,14 +62,18 @@ def run_rag(llm, retriever, query: str):
         }
     
     context = "\n\n".join(context_blocks)
-    if len(context) > 1800:
-        context = context[:1800] + "..."
+    if len(context) > 1500:
+        context = context[:1500] + "..."
 
     prompt = build_prompt(context=context, question=query)
 
     output = llm(prompt)
     raw_answer = output[0]["generated_text"].strip()
-    answer = clean_answer(raw_answer)
+
+    if not raw_answer or raw_answer.lower() in ["not found", "none", "n/a", "no", "unanswerable", "not found in the provided documents."]:
+        answer = "Not found in the provided documents."
+    else:
+        answer = clean_answer(raw_answer)
 
     logging.info(f"query='{query}' | result=ANSWERED | sources={len(sources)}")
 
