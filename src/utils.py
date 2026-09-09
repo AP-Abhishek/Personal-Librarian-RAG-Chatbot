@@ -1,7 +1,11 @@
 import os
 
 def clean_answer(text: str, max_chars: int = 800) -> str:
-    text = " ".join(text.split())
+    text = " ".join(text.split()).strip()
+    for prefix in ["Answer:", "The answer is:", "Based on the context,"]:
+        if text.startswith(prefix):
+            text = text[len(prefix):].strip()
+
     if len(text) <= max_chars:
         return text.strip()
     
