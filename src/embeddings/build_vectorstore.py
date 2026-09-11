@@ -14,6 +14,10 @@ def build_user_vectorstore(user_id: str) -> Chroma:
     )
 
     persist_dir = Path(f"db/chroma/{user_id}")
+    if persist_dir.exists():
+        import shutil
+        shutil.rmtree(persist_dir, ignore_errors=True)
+
     persist_dir.mkdir(parents=True, exist_ok=True)
 
     vectorstore = Chroma.from_documents(
