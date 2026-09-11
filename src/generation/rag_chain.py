@@ -1,14 +1,15 @@
 import logging
 from .prompt import build_prompt
-from src.utils import clean_answer, extract_pdf_name, extract_pdf_page, extract_snippet, compute_confidence
+from src.utils import clean_answer, extract_pdf_name, extract_pdf_page, extract_snippet, compute_confidence, normalize_query
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s"
 )
 
-def run_rag(llm, retriever, query: str, chat_history: str = ""):
-    docs = retriever.invoke(query)
+def run_rag(llm, retriever, query: str):
+    cleaned_query = normalize_query(query)
+    docs = retriever.invoke(cleaned_query)
 
     if not docs:
         logging.info(f"query='{query}' | result=REFUSED | reason=no_docs")
@@ -62,10 +63,10 @@ def run_rag(llm, retriever, query: str, chat_history: str = ""):
         }
     
     context = "\n\n".join(context_blocks)
-    if len(context) > 1500:
-        context = context[:1500] + "..."
+    if len(context) > 2500:
+        context = context[:2500] + "..."
 
-    prompt = build_prompt(context=context, question=query, chat_history=chat_history)
+    prompt = build_prompt(context=context, question=cleaned_query)
 
     output = llm(prompt)
     raw_answer = output[0]["generated_text"].strip()

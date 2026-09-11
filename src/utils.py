@@ -2,7 +2,7 @@ import os
 
 def clean_answer(text: str, max_chars: int = 800) -> str:
     text = " ".join(text.split()).strip()
-    for prefix in ["Answer:", "The answer is:", "Based on the context,"]:
+    for prefix in ["Detailed Answer:", "Answer:", "The answer is:", "Based on the context,"]:
         if text.startswith(prefix):
             text = text[len(prefix):].strip()
 
@@ -14,6 +14,39 @@ def clean_answer(text: str, max_chars: int = 800) -> str:
     if last_space > 0:
         return truncated[:last_space].strip() + "..."
     return truncated.strip() + "..."
+
+def normalize_query(query: str) -> str:
+    if not query:
+        return ""
+    
+    q = query.strip()
+    
+    contractions = {
+        "whats": "what is",
+        "what's": "what is",
+        "where's": "where is",
+        "how's": "how is",
+        "who's": "who is",
+        "can't": "cannot",
+        "don't": "do not",
+        "doesn't": "does not",
+        "won't": "will not",
+    }
+    
+    words = q.split()
+    normalized_words = []
+    
+    for word in words:
+        w_clean = word.lower()
+        if w_clean in contractions:
+            normalized_words.append(contractions[w_clean])
+        elif "%" in word:
+            normalized_words.append(word.replace("%", " percentage"))
+        else:
+            normalized_words.append(word)
+            
+    result = " ".join(normalized_words)
+    return " ".join(result.split())
 
 def extract_pdf_name(source: str) -> str:
     if not source:
