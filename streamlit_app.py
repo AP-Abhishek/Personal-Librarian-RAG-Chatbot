@@ -178,7 +178,7 @@ st.markdown("""
 
 def wipe_vectorstore(user_id: str):
     try:
-        st.cache_resource.clear()
+        load_retriever.clear()
         gc.collect()
         time.sleep(0.1)
         vs_dir = Path(f"db/chroma/{user_id}")
@@ -223,7 +223,7 @@ if st.session_state.pending_wipe:
     st.session_state.llm = None
     st.session_state.last_result = None
 
-    st.cache_resource.clear()
+    load_retriever.clear()
     gc.collect()
     time.sleep(0.1)
 
@@ -260,7 +260,7 @@ with st.sidebar:
                         delete_pdf_from_user_vectorstore(USER_ID, pdf_name)
                         pdf.unlink(missing_ok=True)
                         remaining = list(UPLOAD_DIR.glob("*.pdf"))
-                        st.cache_resource.clear()
+                        load_retriever.clear()
                         st.session_state.llm = None
                         if remaining:
                             st.session_state.last_action = f"Deleted {pdf_name}"
@@ -285,7 +285,7 @@ with st.sidebar:
                             with open(file_path, "wb") as f:
                                 f.write(uploaded_file.getbuffer())
                         build_user_vectorstore(USER_ID)
-                        st.cache_resource.clear()
+                        load_retriever.clear()
                         st.session_state.llm = None
                     st.session_state.last_action = "Library updated successfully"
                 except Exception as e:
@@ -311,7 +311,7 @@ with st.sidebar:
                         with open(file_path, "wb") as f:
                             f.write(uploaded_file.getbuffer())
                     build_user_vectorstore(USER_ID)
-                    st.cache_resource.clear()
+                    load_retriever.clear()
                     st.session_state.llm = None
                 st.session_state.last_action = "Library built successfully"
             except Exception as e:

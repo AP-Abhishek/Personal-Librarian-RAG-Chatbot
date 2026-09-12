@@ -7,10 +7,10 @@ from langchain_core.retrievers import BaseRetriever
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
 
+from src.embeddings.build_vectorstore import get_embedding_model
+
 def load_user_vectorstore(user_id: str) -> Chroma:
-    embedding_model = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
+    embedding_model = get_embedding_model()
 
     persist_dir = Path(f"db/chroma/{user_id}")
     if not persist_dir.exists():
