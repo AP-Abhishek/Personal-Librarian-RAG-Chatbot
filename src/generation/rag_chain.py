@@ -2,17 +2,14 @@ import logging
 from .prompt import build_prompt
 from src.utils import clean_answer, extract_pdf_name, extract_pdf_page, extract_snippet, compute_confidence, normalize_query
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s"
-)
+logger = logging.getLogger(__name__)
 
 def run_rag(llm, retriever, query: str):
     cleaned_query = normalize_query(query)
     docs = retriever.invoke(cleaned_query)
 
     if not docs:
-        logging.info(f"query='{query}' | result=REFUSED | reason=no_docs")
+        logger.info(f"query='{query}' | result=REFUSED | reason=no_docs")
         return {
             "answer": "Not found in the provided documents.",
             "sources": [],
@@ -23,7 +20,7 @@ def run_rag(llm, retriever, query: str):
     MIN_DOCS_REQUIRED = 1
 
     if len(docs) < MIN_DOCS_REQUIRED:
-        logging.info(f"query='{query}' | result=REFUSED | reason=insufficient_docs")
+        logger.info(f"query='{query}' | result=REFUSED | reason=insufficient_docs")
         return {
             "answer": "Not found in the provided documents.",
             "sources": [],
@@ -54,7 +51,7 @@ def run_rag(llm, retriever, query: str):
     confidence = compute_confidence(sources)
 
     if confidence < 0.35:
-        logging.info(f"query='{query}' | result=REFUSED | reason=low_confidence ({confidence})")
+        logger.info(f"query='{query}' | result=REFUSED | reason=low_confidence ({confidence})")
         return {
             "answer": "Retrieval evidence was too weak to answer reliably.",
             "sources": sources,
@@ -76,7 +73,7 @@ def run_rag(llm, retriever, query: str):
     else:
         answer = clean_answer(raw_answer)
 
-    logging.info(f"query='{query}' | result=ANSWERED | sources={len(sources)}")
+    logger.info(f"query='{query}' | result=ANSWERED | sources={len(sources)}")
 
     return {
         "answer": answer,

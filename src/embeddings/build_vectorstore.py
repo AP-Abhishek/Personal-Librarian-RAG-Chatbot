@@ -12,14 +12,17 @@ _GLOBAL_EMBEDDING_MODEL = None
 def get_embedding_model() -> HuggingFaceEmbeddings:
     global _GLOBAL_EMBEDDING_MODEL
     try:
-        import streamlit as st
-        if hasattr(st, "cache_resource"):
-            @st.cache_resource
-            def _get_st_embedding_model():
-                return HuggingFaceEmbeddings(
-                    model_name="sentence-transformers/all-MiniLM-L6-v2"
-                )
-            return _get_st_embedding_model()
+        import sys
+        if "streamlit" in sys.modules:
+            import streamlit as st
+            from streamlit.runtime.scriptrunner import get_script_run_ctx
+            if get_script_run_ctx() is not None:
+                @st.cache_resource
+                def _get_st_embedding_model():
+                    return HuggingFaceEmbeddings(
+                        model_name="sentence-transformers/all-MiniLM-L6-v2"
+                    )
+                return _get_st_embedding_model()
     except Exception:
         pass
 
