@@ -4,12 +4,12 @@ import streamlit as st
 from pathlib import Path
 import shutil, gc, time
 
-from src.utils import format_export_markdown, format_export_text
+from src.utils import format_chat_export_markdown, format_chat_export_text
 from src.retrieval.retriever import load_user_vectorstore, get_retriever
 from src.generation.llm import load_llm
 from src.generation.rag_chain import run_rag
 from src.memory.conversation_memory import ConversationMemory
-from src.embeddings.build_vectorstore import build_user_vectorstore
+from src.embeddings.build_vectorstore import build_user_vectorstore, delete_pdf_from_user_vectorstore
 
 st.set_page_config(
     page_title="Personal Librarian",
@@ -27,6 +27,25 @@ VECTORSTORE_PATH = Path(f"db/chroma/{USER_ID}")
 MEMORY_PATH = Path(f"data/memory/{USER_ID}/conversation.json")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 MEMORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+def cleanup_stale_sessions(max_age_hours: int = 2, current_session_id: str = ""):
+    now = time.time()
+    max_age_sec = max_age_hours * 3600
+
+    base_dirs = [Path("db/chroma"), Path("data/uploads"), Path("data/memory")]
+    for base_dir in base_dirs:
+        if not base_dir.exists():
+            continue
+        for item in base_dir.iterdir():
+            if item.is_dir() and item.name.startswith("session_") and item.name != current_session_id:
+                try:
+                    mtime = item.stat().st_mtime
+                    if now - mtime > max_age_sec:
+                        shutil.rmtree(item, ignore_errors=True)
+                except Exception:
+                    pass
+
+cleanup_stale_sessions(max_age_hours=2, current_session_id=USER_ID)
 
 st.markdown("""
 <style>
@@ -101,8 +120,42 @@ st.markdown("""
     }
 
     .stExpander [data-testid="stExpanderDetails"] {
-        padding: 0.5rem 1rem 0.75rem 1rem !important;
+        padding: 0.5rem 0.6rem 0.75rem 0.6rem !important;
         border-top: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    [data-testid="stSidebar"] [data-testid="stExpanderDetails"] [data-testid="stHorizontalBlock"] {
+        align-items: center !important;
+        background: rgba(255, 255, 255, 0.02) !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        border-radius: 6px !important;
+        padding: 0.35rem 0.5rem !important;
+        margin-bottom: 0.4rem !important;
+    }
+
+    [data-testid="stSidebar"] [data-testid="stExpanderDetails"] button {
+        background: rgba(239, 68, 68, 0.12) !important;
+        border: 1px solid rgba(239, 68, 68, 0.25) !important;
+        color: #f87171 !important;
+        border-radius: 6px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        height: 28px !important;
+        width: 28px !important;
+        min-height: 28px !important;
+        min-width: 28px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        box-shadow: none !important;
+        transform: none !important;
+        cursor: pointer !important;
+    }
+
+    [data-testid="stSidebar"] [data-testid="stExpanderDetails"] button:hover {
+        background: rgba(239, 68, 68, 0.3) !important;
+        border-color: rgba(239, 68, 68, 0.6) !important;
+        color: #ffffff !important;
     }
 
     .source-item {
@@ -194,7 +247,27 @@ with st.sidebar:
         with st.expander(f"📚 Indexed Files ({len(existing_pdfs)})", expanded=True):
             for pdf in existing_pdfs:
                 file_size_kb = pdf.stat().st_size / 1024
-                st.markdown(f"📄 **{pdf.name}**  \n<small style='color: #94a3b8;'>Size: {file_size_kb:.1f} KB</small>", unsafe_allow_html=True)
+                c1, c2 = st.columns([0.82, 0.18])
+                with c1:
+                    st.markdown(
+                        f"<div style='font-size:0.83rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;' title='{pdf.name}'>📄 {pdf.name}</div>"
+                        f"<div style='font-size:0.72rem; color:#94a3b8;'>Size: {file_size_kb:.1f} KB</div>",
+                        unsafe_allow_html=True
+                    )
+                with c2:
+                    if st.button("🗑️", key=f"del_{pdf.name}", help=f"Delete {pdf.name}"):
+                        pdf_name = pdf.name
+                        delete_pdf_from_user_vectorstore(USER_ID, pdf_name)
+                        pdf.unlink(missing_ok=True)
+                        remaining = list(UPLOAD_DIR.glob("*.pdf"))
+                        st.cache_resource.clear()
+                        st.session_state.llm = None
+                        if remaining:
+                            st.session_state.last_action = f"Deleted {pdf_name}"
+                        else:
+                            wipe_vectorstore(USER_ID)
+                            st.session_state.last_action = f"Deleted {pdf_name} (Library empty)"
+                        st.rerun()
         
         with st.expander("➕ Add Documents"):
             uploaded_files = st.file_uploader(
@@ -251,34 +324,29 @@ with st.sidebar:
     st.markdown("---")
     st.subheader("📤 Export")
 
-    last_result = st.session_state.get("last_result")
+    chat_history = st.session_state.get("chat_history", [])
+    export_disabled = not chat_history
 
-    export_disabled = (
-        not last_result
-        or not last_result.get("answer")
-        or not last_result.get("sources")
+    st.download_button(
+        "Export as Text file",
+        data=format_chat_export_text(chat_history) if chat_history else "",
+        file_name="chat_history.txt",
+        mime="text/plain",
+        disabled=export_disabled,
+        use_container_width=True
     )
 
-    if last_result:
-        st.download_button(
-            "Export as Text file",
-            data=format_export_text(last_result),
-            file_name="librarian_answer.txt",
-            mime="text/plain",
-            disabled=export_disabled,
-            use_container_width=True
-        )
+    st.download_button(
+        "Export as Markdown",
+        data=format_chat_export_markdown(chat_history) if chat_history else "",
+        file_name="chat_history.md",
+        mime="text/markdown",
+        disabled=export_disabled,
+        use_container_width=True
+    )
 
-        st.download_button(
-            "Export as Markdown",
-            data=format_export_markdown(last_result),
-            file_name="librarian_answer.md",
-            mime="text/markdown",
-            disabled=export_disabled,
-            use_container_width=True
-        )
-    else:
-        st.caption("Ask a question to enable export.")
+    if export_disabled:
+        st.caption("Start a conversation to enable export.")
 
     st.markdown("---")
     st.subheader("⚙️ Controls")
@@ -330,7 +398,10 @@ if st.session_state.is_building:
     st.info("The Librarian is processing your documents. Please stand by...")
     user_query = None
 elif not library_ready:
-    st.warning("👈 Please upload and build your library in the sidebar to begin.")
+    if not st.session_state.chat_history:
+        st.warning("👈 Please upload and build your library in the sidebar to begin.")
+    else:
+        st.info("💡 Library is currently empty. Upload documents to continue asking questions, or export your conversation in the sidebar.")
     user_query = None
 else:
     user_query = st.chat_input("Ask anything about your documents...")

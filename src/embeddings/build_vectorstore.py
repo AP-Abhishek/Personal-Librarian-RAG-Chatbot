@@ -28,3 +28,14 @@ def build_user_vectorstore(user_id: str) -> Chroma:
     )
 
     return vectorstore
+
+def delete_pdf_from_user_vectorstore(user_id: str, file_name: str) -> bool:
+    try:
+        from src.retrieval.retriever import load_user_vectorstore
+        vectorstore = load_user_vectorstore(user_id)
+        vectorstore.delete(where={"file_name": file_name})
+        return True
+    except Exception as e:
+        import logging
+        logging.error(f"Failed to delete {file_name} from Chroma vectorstore: {e}")
+        return False

@@ -111,3 +111,54 @@ def format_export_markdown(data: dict) -> str:
         md.append(f"- **{src['pdf']}**, page {src['page']}\n\n  > {src['snippet']}")
     
     return "\n".join(md)
+
+def format_chat_export_text(chat_history: list) -> str:
+    if not chat_history:
+        return "No conversation history."
+    
+    lines = ["=== Personal Librarian Chat History ===\n"]
+    for msg in chat_history:
+        role = "User" if msg.get("role") == "user" else "Assistant"
+        content = msg.get("content", "")
+        lines.append(f"[{role}]: {content}")
+        
+        sources = msg.get("sources", [])
+        if sources and msg.get("role") == "assistant":
+            lines.append("  Sources & References:")
+            for src in sources:
+                if isinstance(src, dict):
+                    pdf = src.get("pdf", "Document")
+                    page = src.get("page", "1")
+                    snippet = src.get("snippet", "")
+                    lines.append(f"   - {pdf} (Page {page}): \"{snippet}\"")
+                else:
+                    lines.append(f"   - {src}")
+        lines.append("")
+    
+    return "\n".join(lines)
+
+def format_chat_export_markdown(chat_history: list) -> str:
+    if not chat_history:
+        return "*No conversation history.*"
+    
+    md = ["# 📚 Personal Librarian - Conversation Export\n"]
+    for msg in chat_history:
+        role = "👤 **User**" if msg.get("role") == "user" else "🤖 **Assistant**"
+        content = msg.get("content", "")
+        md.append(f"### {role}\n{content}\n")
+        
+        sources = msg.get("sources", [])
+        if sources and msg.get("role") == "assistant":
+            md.append("**References & Sources:**")
+            for src in sources:
+                if isinstance(src, dict):
+                    pdf = src.get("pdf", "Document")
+                    page = src.get("page", "1")
+                    snippet = src.get("snippet", "")
+                    md.append(f"- 📄 **{pdf}** (Page {page})\n  > *\"{snippet}\"*")
+                else:
+                    md.append(f"- {src}")
+            md.append("")
+        md.append("---\n")
+    
+    return "\n".join(md)
