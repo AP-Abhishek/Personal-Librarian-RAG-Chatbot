@@ -133,7 +133,7 @@ st.markdown("""
         margin-bottom: 0.4rem !important;
     }
 
-    [data-testid="stSidebar"] [data-testid="stExpanderDetails"] button {
+    [data-testid="stSidebar"] [data-testid="stExpanderDetails"] [data-testid="stHorizontalBlock"] button {
         background: rgba(239, 68, 68, 0.12) !important;
         border: 1px solid rgba(239, 68, 68, 0.25) !important;
         color: #f87171 !important;
@@ -152,7 +152,7 @@ st.markdown("""
         cursor: pointer !important;
     }
 
-    [data-testid="stSidebar"] [data-testid="stExpanderDetails"] button:hover {
+    [data-testid="stSidebar"] [data-testid="stExpanderDetails"] [data-testid="stHorizontalBlock"] button:hover {
         background: rgba(239, 68, 68, 0.3) !important;
         border-color: rgba(239, 68, 68, 0.6) !important;
         color: #ffffff !important;
