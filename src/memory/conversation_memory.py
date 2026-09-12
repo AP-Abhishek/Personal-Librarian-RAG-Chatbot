@@ -67,10 +67,13 @@ class ConversationMemory:
         }
         
         q = query.strip().lower()
-        if q in vague_phrases or len(q) < 3:
+        if q in vague_phrases or len(q) < 4:
             return True
             
-        return any(phrase in q for phrase in [
-            "any other", "other project", "another project", "apart from this",
-            "besides this", "anything else", "what else", "is there more"
-        ])
+        if len(q) < 35:
+            return any(phrase in q for phrase in [
+                "any other", "other project", "another project", "apart from this",
+                "besides this", "anything else", "what else", "is there more"
+            ])
+            
+        return False

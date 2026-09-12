@@ -38,7 +38,10 @@ class HybridVectorRetriever(BaseRetriever):
         stopwords = {
             "tell", "me", "the", "a", "an", "is", "are", "was", "were",
             "what", "whats", "what's", "where", "how", "in", "on", "at",
-            "for", "to", "of", "and", "or", "about", "my", "your", "this"
+            "for", "to", "of", "and", "or", "about", "my", "your", "this",
+            "can", "will", "show", "give", "list", "describe", "explain",
+            "does", "did", "do", "find", "search", "please", "with", "from",
+            "by", "has", "have", "had", "which", "when", "that", "these", "those"
         }
         raw_terms = re.findall(r'\b\w+\b', query.lower())
         keywords = [t for t in raw_terms if t not in stopwords and len(t) >= 2]
