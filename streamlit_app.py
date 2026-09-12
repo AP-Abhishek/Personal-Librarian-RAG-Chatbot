@@ -257,7 +257,7 @@ with st.sidebar:
                         unsafe_allow_html=True
                     )
                 with c2:
-                    if st.button("🗑️", key=f"del_{pdf.name}", help=f"Delete {pdf.name}"):
+                    if st.button("🗑️ ", key=f"del_{pdf.name}", help=f"Delete {pdf.name}"):
                         pdf_name = pdf.name
                         delete_pdf_from_user_vectorstore(USER_ID, pdf_name)
                         pdf.unlink(missing_ok=True)
