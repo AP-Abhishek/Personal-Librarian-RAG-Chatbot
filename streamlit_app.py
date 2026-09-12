@@ -198,6 +198,8 @@ if "chat_history" not in st.session_state:
 
 if "memory" not in st.session_state:
     st.session_state.memory = ConversationMemory(max_size=5, persist_path=MEMORY_PATH)
+    if not st.session_state.chat_history:
+        st.session_state.memory.clear()
 
 if "llm" not in st.session_state:
     st.session_state.llm = None
@@ -239,8 +241,8 @@ with st.sidebar:
     st.title("📚 Librarian")
     st.markdown("---")
     st.subheader("📁 Document Library")
-    library_ready = VECTORSTORE_PATH.exists()
     existing_pdfs = list(UPLOAD_DIR.glob("*.pdf")) if UPLOAD_DIR.exists() else []
+    library_ready = VECTORSTORE_PATH.exists() and bool(existing_pdfs)
 
     if library_ready and existing_pdfs:
         st.caption("🟢 **Library Status:** Active")
