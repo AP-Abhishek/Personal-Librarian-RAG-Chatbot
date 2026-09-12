@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "personal-librarian-rag-chatbot"
+version = "1.0.0"
+description = "Intelligent document retrieval and exploration RAG chatbot with strict refusal guardrails and dual Web UI / CLI interfaces"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "AP Abhishek", email = "abhishekap12005@gmail.com" }
+]
+keywords = [
+    "rag",
+    "chatbot",
+    "langchain",
+    "chromadb",
+    "flan-t5",
+    "streamlit",
+    "python",
+    "artificial-intelligence"
+]
+dependencies = [
+    "streamlit>=1.30.0",
+    "langchain>=0.1.0",
+    "langchain-community>=0.0.20",
+    "langchain-core>=0.1.20",
+    "langchain-chroma>=0.1.0",
+    "langchain-huggingface>=0.0.1",
+    "chromadb>=0.4.22",
+    "sentence-transformers>=2.3.1",
+    "transformers>=4.37.0",
+    "torch>=2.1.0",
+    "pypdf>=4.0.0",
+    "pytest>=8.0.0"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["*_test.py", "test_*.py"]

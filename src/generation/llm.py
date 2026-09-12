@@ -1,19 +1,22 @@
-from transformers import pipeline
+from transformers import pipeline, AutoModelForSeq2SeqLM, AutoTokenizer
 
 def load_llm():
+    model_name = "google/flan-t5-large"
     try:
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
         return pipeline(
-            task="text2text-generation",
-            model="google/flan-t5-large",
+            "text2text-generation",
+            model=model,
+            tokenizer=tokenizer,
             max_new_tokens=256,
             do_sample=False,
-            truncation=True,
-            model_kwargs={"local_files_only": True}
+            truncation=True
         )
     except Exception:
         return pipeline(
-            task="text2text-generation",
-            model="google/flan-t5-large",
+            "text2text-generation",
+            model=model_name,
             max_new_tokens=256,
             do_sample=False,
             truncation=True
