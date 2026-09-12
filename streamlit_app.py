@@ -88,6 +88,14 @@ st.markdown("""
         margin-top: 0.5rem !important;
     }
 
+    .stExpander summary p {
+        font-size: 0.85rem !important;
+        font-weight: 500 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+
     .stExpander > div:first-child {
         padding: 0.4rem 0.8rem !important;
     }
@@ -179,32 +187,66 @@ with st.sidebar:
     st.markdown("---")
     st.subheader("📁 Document Library")
     library_ready = VECTORSTORE_PATH.exists()
+    existing_pdfs = list(UPLOAD_DIR.glob("*.pdf")) if UPLOAD_DIR.exists() else []
 
-    uploaded_files = st.file_uploader(
-        "Upload PDF files",
-        type=["pdf"],
-        accept_multiple_files=True,
-        key=f"uploader_{int(library_ready)}"
-    )
+    if library_ready and existing_pdfs:
+        st.caption("🟢 **Library Status:** Active")
+        with st.expander(f"📚 Indexed Files ({len(existing_pdfs)})", expanded=True):
+            for pdf in existing_pdfs:
+                file_size_kb = pdf.stat().st_size / 1024
+                st.markdown(f"📄 **{pdf.name}**  \n<small style='color: #94a3b8;'>Size: {file_size_kb:.1f} KB</small>", unsafe_allow_html=True)
+        
+        with st.expander("➕ Add Documents"):
+            uploaded_files = st.file_uploader(
+                "Upload additional PDFs",
+                type=["pdf"],
+                accept_multiple_files=True,
+                key="uploader_add"
+            )
+            if uploaded_files and st.button("Update Library", use_container_width=True):
+                st.session_state.is_building = True
+                try:
+                    with st.spinner("Analyzing documents..."):
+                        for uploaded_file in uploaded_files:
+                            file_path = UPLOAD_DIR / uploaded_file.name
+                            with open(file_path, "wb") as f:
+                                f.write(uploaded_file.getbuffer())
+                        build_user_vectorstore(USER_ID)
+                        st.cache_resource.clear()
+                        st.session_state.llm = None
+                    st.session_state.last_action = "Library updated successfully"
+                except Exception as e:
+                    st.error(f"Error processing documents: {e}")
+                    st.session_state.last_action = "Failed to update library"
+                finally:
+                    st.session_state.is_building = False
+                    st.rerun()
+    else:
+        uploaded_files = st.file_uploader(
+            "Upload PDF files",
+            type=["pdf"],
+            accept_multiple_files=True,
+            key="uploader_initial"
+        )
 
-    if uploaded_files and st.button("Build Library", use_container_width=True):
-        st.session_state.is_building = True
-        try:
-            with st.spinner("Analyzing documents..."):
-                for uploaded_file in uploaded_files:
-                    file_path = UPLOAD_DIR / uploaded_file.name
-                    with open(file_path, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
-                build_user_vectorstore(USER_ID)
-                st.cache_resource.clear()
-                st.session_state.llm = None
-            st.session_state.last_action = "Library built successfully"
-        except Exception as e:
-            st.error(f"Error processing documents: {e}")
-            st.session_state.last_action = "Failed to build library"
-        finally:
-            st.session_state.is_building = False
-            st.rerun()
+        if uploaded_files and st.button("Build Library", use_container_width=True):
+            st.session_state.is_building = True
+            try:
+                with st.spinner("Analyzing documents..."):
+                    for uploaded_file in uploaded_files:
+                        file_path = UPLOAD_DIR / uploaded_file.name
+                        with open(file_path, "wb") as f:
+                            f.write(uploaded_file.getbuffer())
+                    build_user_vectorstore(USER_ID)
+                    st.cache_resource.clear()
+                    st.session_state.llm = None
+                st.session_state.last_action = "Library built successfully"
+            except Exception as e:
+                st.error(f"Error processing documents: {e}")
+                st.session_state.last_action = "Failed to build library"
+            finally:
+                st.session_state.is_building = False
+                st.rerun()
 
     st.markdown("---")
     st.subheader("📤 Export")
