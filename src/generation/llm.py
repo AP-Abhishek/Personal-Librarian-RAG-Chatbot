@@ -9,7 +9,7 @@ def load_llm():
             "text2text-generation",
             model=model,
             tokenizer=tokenizer,
-            max_new_tokens=256,
+            max_new_tokens=512,
             do_sample=False,
             truncation=True
         )
@@ -17,7 +17,7 @@ def load_llm():
         return pipeline(
             "text2text-generation",
             model=model_name,
-            max_new_tokens=256,
+            max_new_tokens=512,
             do_sample=False,
             truncation=True
         )

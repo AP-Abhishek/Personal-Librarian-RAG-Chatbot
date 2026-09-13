@@ -1,19 +1,11 @@
 import os
 
-def clean_answer(text: str, max_chars: int = 800) -> str:
+def clean_answer(text: str) -> str:
     text = " ".join(text.split()).strip()
     for prefix in ["Detailed Answer:", "Answer:", "The answer is:", "Based on the context,"]:
         if text.startswith(prefix):
             text = text[len(prefix):].strip()
-
-    if len(text) <= max_chars:
-        return text.strip()
-    
-    truncated = text[:max_chars]
-    last_space = truncated.rfind(" ")
-    if last_space > 0:
-        return truncated[:last_space].strip() + "..."
-    return truncated.strip() + "..."
+    return text.strip()
 
 def normalize_query(query: str) -> str:
     if not query:
