@@ -13,7 +13,7 @@ from src.embeddings.build_vectorstore import build_user_vectorstore, delete_pdf_
 
 st.set_page_config(
     page_title="Personal Librarian",
-    page_icon="📚",
+    page_icon="assets/favicon.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
