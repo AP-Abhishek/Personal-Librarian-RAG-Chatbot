@@ -126,11 +126,12 @@ st.markdown("""
 
     [data-testid="stSidebar"] [data-testid="stExpanderDetails"] [data-testid="stHorizontalBlock"] {
         align-items: center !important;
-        background: rgba(255, 255, 255, 0.02) !important;
-        border: 1px solid rgba(255, 255, 255, 0.05) !important;
-        border-radius: 6px !important;
-        padding: 0.35rem 0.5rem !important;
-        margin-bottom: 0.4rem !important;
+        background: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.07) !important;
+        border-radius: 8px !important;
+        padding: 0.75rem 0.85rem !important;
+        margin-bottom: 0.6rem !important;
+        gap: 0.5rem !important;
     }
 
     [data-testid="stSidebar"] [data-testid="stExpanderDetails"] [data-testid="stHorizontalBlock"] button {
@@ -249,15 +250,17 @@ with st.sidebar:
         with st.expander(f"📚 Indexed Files ({len(existing_pdfs)})", expanded=True):
             for pdf in existing_pdfs:
                 file_size_kb = pdf.stat().st_size / 1024
-                c1, c2 = st.columns([0.82, 0.18])
+                c1, c2 = st.columns([0.78, 0.22], vertical_alignment="center")
                 with c1:
                     st.markdown(
-                        f"<div style='font-size:0.83rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;' title='{pdf.name}'>📄 {pdf.name}</div>"
-                        f"<div style='font-size:0.72rem; color:#94a3b8;'>Size: {file_size_kb:.1f} KB</div>",
+                        f"<div style='line-height:1.4; padding:4px 0 6px 0;'>"
+                        f"<div style='font-size:0.83rem; font-weight:600; color:#f8fafc; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;' title='{pdf.name}'>📄 {pdf.name}</div>"
+                        f"<div style='font-size:0.72rem; color:#94a3b8; margin-top:4px; padding-bottom:4px;'>Size: {file_size_kb:.1f} KB</div>"
+                        f"</div>",
                         unsafe_allow_html=True
                     )
                 with c2:
-                    if st.button("🗑️ ", key=f"del_{pdf.name}", help=f"Delete {pdf.name}"):
+                    if st.button("🗑️", key=f"del_{pdf.name}", help=f"Delete {pdf.name}"):
                         pdf_name = pdf.name
                         delete_pdf_from_user_vectorstore(USER_ID, pdf_name)
                         pdf.unlink(missing_ok=True)
