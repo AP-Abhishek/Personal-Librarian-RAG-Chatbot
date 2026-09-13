@@ -1,10 +1,14 @@
 streamlit
+transformers>=4.44.0,<5.0.0
+sentence-transformers
 langchain
 langchain-community
 langchain-chroma
 langchain-huggingface
-sentence-transformers
+chromadb>=0.5.0
 pypdf
-transformers
 torch
-chromadb
+torchvision
+requests
+
+
